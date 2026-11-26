@@ -110,7 +110,7 @@ details.panel summary{font-weight:700;cursor:pointer;min-height:32px;list-style-
     <label for="amt">المبلغ (جنيه)</label>
     <input id="amt" class="amt" inputmode="decimal" autocomplete="off" placeholder="0">
     <div id="catWrap">
-      <label>صرفته في إيه؟</label>
+      <label id="catLbl">صرفته في إيه؟ (اختاري بند)</label>
       <div class="chips" id="chips"></div>
       <div class="addrow" id="newCatRow" hidden>
         <input id="newCat" maxlength="30" placeholder="اسم البند الجديد">
@@ -158,6 +158,10 @@ details.panel summary{font-weight:700;cursor:pointer;min-height:32px;list-style-
 
   <details class="panel" id="catMgr">
     <summary>البنود بتاعتي (إضافة / تعديل / مسح)</summary>
+    <div class="seg" id="mgrSeg" style="grid-template-columns:1fr 1fr">
+      <button type="button" data-t="exp" aria-pressed="true">بنود المصاريف</button>
+      <button type="button" data-t="inc" aria-pressed="false">بنود الفلوس اللي بتدخل</button>
+    </div>
     <div id="catList"></div>
     <div class="addrow">
       <input id="mgrNew" maxlength="30" placeholder="بند جديد">
@@ -196,6 +200,10 @@ details.panel summary{font-weight:700;cursor:pointer;min-height:32px;list-style-
 {
 const DEFAULT_CATS = ["أكل وبقالة","مواصلات","بيت","فواتير","أولاد ومدارس","لبس","صحة","خروج","تانية"];
 let CATS = DEFAULT_CATS.slice();
+const DEFAULT_ICATS = ["مرتب","شغل إضافي","هدية","تانية"];
+let ICATS = DEFAULT_ICATS.slice();
+let mgrType = "exp";
+const listOf = ty => ty === "inc" ? ICATS : CATS;
 const MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -218,7 +226,7 @@ let pendingDel = null;
 function loadLocal(){
   try { txs = JSON.parse(localStorage.getItem("masareef") || "[]"); } catch(e){ txs = []; }
   try { const c = JSON.parse(localStorage.getItem("masareef_cats") || "null"); if (Array.isArray(c) && c.length) CATS = c.filter(x => typeof x === "string" && x.trim()); } catch(e){}
-  cat = CATS[0] || "تانية";
+  try { const c = JSON.parse(localStorage.getItem("masareef_icats") || "null"); if (Array.isArray(c) && c.length) ICATS = c.filter(x => typeof x === "string" && x.trim()); } catch(e){}
   try { dirty = new Set(JSON.parse(localStorage.getItem("masareef_dirty") || "[]")); } catch(e){}
   try { catsUpdated = Number(localStorage.getItem("masareef_catsU")) || 0; } catch(e){}
   try { cfg = JSON.parse(localStorage.getItem("masareef_sync") || "null"); } catch(e){}
@@ -230,36 +238,47 @@ function saveLocal(){
 }
 function saveCats(){
   catsUpdated = Date.now();
-  try { localStorage.setItem("masareef_cats", JSON.stringify(CATS)); localStorage.setItem("masareef_catsU", String(catsUpdated)); } catch(e){}
+  try { localStorage.setItem("masareef_cats", JSON.stringify(CATS)); localStorage.setItem("masareef_icats", JSON.stringify(ICATS)); localStorage.setItem("masareef_catsU", String(catsUpdated)); } catch(e){}
   catsDirty = true; scheduleSync();
 }
 function touch(t){ t.updated = Date.now(); dirty.add(t.id); }
-function addCat(name){
+function addCat(name, ty){
   name = String(name || "").trim().slice(0,30);
   if (!name) return false;
-  if (!CATS.includes(name)) { CATS.push(name); saveCats(); }
+  const L = listOf(ty);
+  if (!L.includes(name)) { L.push(name); saveCats(); }
   return name;
+}
+// categories travel to the sheet as one list; income ones carry an "inc:" prefix
+const packCats = () => [...CATS, ...ICATS.map(c => "inc:" + c)];
+function unpackCats(arr){
+  const e = [], i = [];
+  for (const x of arr) { if (typeof x !== "string" || !x.trim()) continue; if (x.startsWith("inc:")) { if (x.slice(4).trim()) i.push(x.slice(4)); } else e.push(x); }
+  if (e.length) CATS = e; if (i.length) ICATS = i;
 }
 
 function renderChips(){
-  if (!CATS.includes(cat)) cat = CATS[0] || "تانية";
-  $("chips").innerHTML = CATS.map(c => `<button type="button" class="chip" data-c="${esc(c)}" aria-pressed="${c===cat}">${esc(c)}</button>`).join("")
+  const L = listOf(kind);
+  if (!L.includes(cat)) cat = "";
+  $("chips").innerHTML = L.map(c => `<button type="button" class="chip" data-c="${esc(c)}" aria-pressed="${c===cat}">${esc(c)}</button>`).join("")
     + `<button type="button" class="chip add" id="chipAdd">+ بند جديد</button>`;
 }
 $("chips").addEventListener("click", e => {
   const b = e.target.closest(".chip"); if (!b) return;
   if (b.id === "chipAdd") { $("newCatRow").hidden = false; $("newCat").value = ""; $("newCat").focus(); return; }
-  cat = b.dataset.c;
+  cat = b.dataset.c; $("err").textContent = "";
   for (const x of $("chips").querySelectorAll(".chip[data-c]")) x.setAttribute("aria-pressed", x.dataset.c === cat);
 });
 $("newCatAdd").onclick = () => {
-  const n = addCat($("newCat").value); if (!n) return;
-  cat = n; $("newCatRow").hidden = true; renderChips(); render();
+  const n = addCat($("newCat").value, kind); if (!n) return;
+  cat = n; $("err").textContent = ""; $("newCatRow").hidden = true; renderChips(); render();
 };
 $("newCat").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); $("newCatAdd").click(); } });
 
 function renderCatMgr(){
-  $("catList").innerHTML = CATS.map((c,i) => `<div class="crow"><input data-i="${i}" value="${esc(c)}" maxlength="30" aria-label="اسم البند">
+  const L = listOf(mgrType);
+  for (const b of $("mgrSeg").children) b.setAttribute("aria-pressed", b.dataset.t === mgrType);
+  $("catList").innerHTML = L.map((c,i) => `<div class="crow"><input data-i="${i}" value="${esc(c)}" maxlength="30" aria-label="اسم البند">
     <button type="button" data-save="${i}">حفظ</button>
     <button type="button" data-del="${i}" class="${pendingCatDel === i ? "sure" : ""}">${pendingCatDel === i ? "امسح؟" : "✕"}</button></div>`).join("")
     || `<div class="empty">مفيش بنود. ضيفي بند تحت.</div>`;
@@ -267,22 +286,23 @@ function renderCatMgr(){
 $("catList").addEventListener("click", e => {
   const sv = e.target.closest("[data-save]"), dl = e.target.closest("[data-del]");
   if (sv) {
-    const i = +sv.dataset.save, old = CATS[i];
+    const L = listOf(mgrType), i = +sv.dataset.save, old = L[i];
     const nn = $("catList").querySelector(`input[data-i="${i}"]`).value.trim().slice(0,30);
     if (!nn || nn === old) return;
-    if (CATS.includes(nn)) { CATS.splice(i,1); } else { CATS[i] = nn; }
-    for (const t of txs) if (t.type === "exp" && t.cat === old) { t.cat = nn; touch(t); }
-    if (cat === old) cat = nn; if (sCat === old) sCat = nn;
+    if (L.includes(nn)) { L.splice(i,1); } else { L[i] = nn; }
+    for (const t of txs) if (t.type === mgrType && t.cat === old) { t.cat = nn; touch(t); }
+    if (kind === mgrType && cat === old) cat = nn; if (sCat === mgrType + "|" + old) sCat = mgrType + "|" + nn;
     saveCats(); saveLocal(); renderChips(); renderCatMgr(); render(); setStatus("اسم البند اتغيّر");
   }
   if (dl) {
     const i = +dl.dataset.del;
-    if (pendingCatDel === i) { pendingCatDel = null; CATS.splice(i,1); saveCats(); renderChips(); renderCatMgr(); render(); return; }
+    if (pendingCatDel === i) { pendingCatDel = null; listOf(mgrType).splice(i,1); saveCats(); renderChips(); renderCatMgr(); render(); return; }
     pendingCatDel = i; renderCatMgr();
     setTimeout(() => { if (pendingCatDel === i) { pendingCatDel = null; renderCatMgr(); } }, 3000);
   }
 });
-$("mgrAdd").onclick = () => { if (addCat($("mgrNew").value)) { $("mgrNew").value = ""; renderChips(); renderCatMgr(); render(); } };
+$("mgrSeg").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; mgrType = b.dataset.t; pendingCatDel = null; renderCatMgr(); });
+$("mgrAdd").onclick = () => { if (addCat($("mgrNew").value, mgrType)) { $("mgrNew").value = ""; renderChips(); renderCatMgr(); render(); } };
 $("mgrNew").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); $("mgrAdd").click(); } });
 
 $("sCat").onchange = () => { sCat = $("sCat").value; render(); };
@@ -292,14 +312,15 @@ $("sPer").addEventListener("click", e => {
 });
 $("cats").addEventListener("click", e => {
   const r = e.target.closest(".cat"); if (!r) return;
-  sCat = r.dataset.c; sPer = "month"; render();
+  sCat = "exp|" + r.dataset.c; sPer = "month"; render();
   $("sumH").scrollIntoView({behavior: "smooth", block: "start"});
 });
 
 function openForm(k){
   kind = k;
   $("formTitle").textContent = k === "exp" ? "مصروف جديد" : "فلوس دخلت (مرتب، فلوس معاكي…)";
-  $("catWrap").hidden = k !== "exp";
+  cat = "";
+  $("catLbl").textContent = k === "exp" ? "صرفته في إيه؟ (اختاري بند)" : "الفلوس دي جت منين؟ (اختاري بند)";
   $("note").placeholder = k === "exp" ? "مثلاً: عيش وخضار" : "مثلاً: المرتب";
   $("date").value = today(); $("amt").value = ""; $("note").value = ""; $("err").textContent = "";
   $("newCatRow").hidden = true; renderChips();
@@ -313,9 +334,10 @@ $("form").addEventListener("submit", async e => {
   e.preventDefault();
   const raw = $("amt").value.replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/[,٬]/g, "").replace("٫", ".");
   const amount = parseFloat(raw);
-  if (!(amount > 0)) { $("err").textContent = "اكتب المبلغ الأول"; return; }
+  if (!(amount > 0)) { $("err").textContent = "اكتبي المبلغ الأول"; return; }
+  if (!cat || !listOf(kind).includes(cat)) { $("err").textContent = "اختاري البند الأول"; return; }
   const t = { id: "t" + Date.now().toString(36) + Math.random().toString(36).slice(2,6), type: kind, amount,
-              cat: kind === "exp" ? cat : "", note: $("note").value.trim().slice(0,80), date: $("date").value || today(), created: Date.now() };
+              cat, note: $("note").value.trim().slice(0,80), date: $("date").value || today(), created: Date.now() };
   $("form").hidden = true;
   view = t.date.slice(0,7);
   touch(t); txs.push(t); saveLocal(); render();
@@ -358,27 +380,32 @@ function render(){
     : `<div class="empty">مفيش مصاريف متسجّلة في الشهر ده</div>`;
 
   // ---- summary by category
-  const used = [...new Set(valid.filter(t => t.type === "exp").map(t => t.cat || "تانية"))];
-  const opts = [...CATS, ...used.filter(c => !CATS.includes(c))];
-  if (!opts.includes(sCat)) sCat = rows.length ? rows[0][0] : (opts[0] || "");
-  $("sCat").innerHTML = opts.map(c => `<option value="${esc(c)}"${c === sCat ? " selected" : ""}>${esc(c)}</option>`).join("");
+  const catName = t => t.cat || (t.type === "inc" ? "فلوس دخلت" : "تانية");
+  const usedE = [...new Set(valid.filter(t => t.type === "exp").map(catName))];
+  const usedI = [...new Set(valid.filter(t => t.type === "inc").map(catName))];
+  const optsE = [...CATS, ...usedE.filter(c => !CATS.includes(c))].map(c => "exp|" + c);
+  const optsI = [...ICATS, ...usedI.filter(c => !ICATS.includes(c))].map(c => "inc|" + c);
+  if (![...optsE, ...optsI].includes(sCat)) sCat = rows.length ? "exp|" + rows[0][0] : (optsE[0] || optsI[0] || "");
+  const opt = v => `<option value="${esc(v)}"${v === sCat ? " selected" : ""}>${esc(v.slice(4))}</option>`;
+  $("sCat").innerHTML = `<optgroup label="مصاريف">${optsE.map(opt).join("")}</optgroup><optgroup label="فلوس دخلت">${optsI.map(opt).join("")}</optgroup>`;
+  const sType = sCat.slice(0,3), sName = sCat.slice(4);
   $("perMonth").textContent = MONTHS[m-1];
   $("perYear").textContent = "سنة " + y;
   for (const b of $("sPer").children) b.setAttribute("aria-pressed", b.dataset.p === sPer);
   const inPer = t => sPer === "all" ? true : sPer === "year" ? t.date.slice(0,4) === String(y) : t.date.slice(0,7) === view;
-  const sel = valid.filter(t => t.type === "exp" && (t.cat || "تانية") === sCat && inPer(t))
+  const sel = valid.filter(t => t.type === sType && catName(t) === sName && inPer(t))
                    .sort((a,b) => b.date.localeCompare(a.date) || b.created - a.created);
   const sTot = sel.reduce((a,t) => a + t.amount, 0);
   $("sTot").textContent = fmt(sTot); $("sCnt").textContent = sel.length; $("sAvg").textContent = fmt(sel.length ? sTot / sel.length : 0);
   $("sList").innerHTML = sel.length ? sel.map(t => { const [yy,mm,dd] = t.date.split("-").map(Number);
       return `<div class="it" style="grid-template-columns:1fr auto"><div><div class="t">${dd} ${MONTHS[mm-1]}${sPer === "month" ? "" : " " + yy}</div>${t.note ? `<div class="n">${esc(t.note)}</div>` : ""}</div><div class="a num">${esc(fmt(t.amount))}</div></div>`; }).join("")
-    : `<div class="empty">مفيش مصاريف في «${esc(sCat)}» في الفترة دي</div>`;
+    : `<div class="empty">مفيش حاجة متسجّلة في «${esc(sName)}» في الفترة دي</div>`;
 
   month.sort((a,b) => b.date.localeCompare(a.date) || b.created - a.created);
   let html = "", lastDay = "";
   for (const t of month) {
     if (t.date !== lastDay) { lastDay = t.date; const [yy,mm,dd] = t.date.split("-").map(Number); html += `<div class="day">${dd} ${MONTHS[mm-1]}</div>`; }
-    const title = t.type === "inc" ? "فلوس دخلت" : (t.cat || "تانية");
+    const title = t.cat || (t.type === "inc" ? "فلوس دخلت" : "تانية");
     const sure = pendingDel === t.id;
     html += `<div class="it"><div><div class="t">${esc(title)}</div>${t.note ? `<div class="n">${esc(t.note)}</div>` : ""}</div>
       <div class="a num ${t.type === "inc" ? "in" : ""}">${t.type === "inc" ? "+" : "−"}${esc(fmt(t.amount))}</div>
@@ -393,7 +420,7 @@ try { navigator.storage && navigator.storage.persist && navigator.storage.persis
 
 $("exp").onclick = async () => {
   const name = "masareef-" + today() + ".json";
-  const blob = new Blob([JSON.stringify({app:"masareef",v:3,txs:txs.filter(t => !t.deleted),cats:CATS}, null, 1)], {type:"application/json"});
+  const blob = new Blob([JSON.stringify({app:"masareef",v:3,txs:txs.filter(t => !t.deleted),cats:CATS,icats:ICATS}, null, 1)], {type:"application/json"});
   try {
     const f = new File([blob], name, {type:"application/json"});
     if (navigator.canShare && navigator.canShare({files:[f]})) { await navigator.share({files:[f], title:"مصاريفي"}); setStatus("النسخة اتحفظت"); return; }
@@ -410,6 +437,7 @@ $("imp").onchange = async e => {
     const ids = new Set(txs.map(t => t.id)); let added = 0;
     for (const t of list) if (t && t.id && t.amount > 0 && typeof t.date === "string" && !ids.has(t.id)) { touch(t); txs.push(t); added++; }
     if (data && Array.isArray(data.cats)) for (const c of data.cats) if (typeof c === "string" && c.trim() && !CATS.includes(c.trim())) CATS.push(c.trim().slice(0,30));
+    if (data && Array.isArray(data.icats)) for (const c of data.icats) if (typeof c === "string" && c.trim() && !ICATS.includes(c.trim())) ICATS.push(c.trim().slice(0,30));
     saveCats(); saveLocal(); renderChips(); renderCatMgr(); render(); setStatus(`اترجّع ${added} عملية`);
   } catch(err) { setStatus("الملف ده مش نسخة من مصاريفي"); }
 };
@@ -439,9 +467,9 @@ function merge(res){
   }
   txs = [...byId.values()];
   if (Array.isArray(res.cats) && res.cats.length && (Number(res.catsUpdated) || 0) > catsUpdated) {
-    CATS = res.cats.filter(x => typeof x === "string" && x.trim());
+    unpackCats(res.cats);
     catsUpdated = Number(res.catsUpdated);
-    try { localStorage.setItem("masareef_cats", JSON.stringify(CATS)); localStorage.setItem("masareef_catsU", String(catsUpdated)); } catch(e){}
+    try { localStorage.setItem("masareef_cats", JSON.stringify(CATS)); localStorage.setItem("masareef_icats", JSON.stringify(ICATS)); localStorage.setItem("masareef_catsU", String(catsUpdated)); } catch(e){}
   }
   try { localStorage.setItem("masareef", JSON.stringify(txs)); localStorage.setItem("masareef_dirty", JSON.stringify([...dirty])); } catch(e){}
   renderChips(); renderCatMgr(); render();
@@ -453,7 +481,7 @@ async function syncNow(){
   syncing = true;
   const sent = txs.filter(t => dirty.has(t.id)).map(t => Object.assign({}, t));
   try {
-    const res = await call(cfg, { txs: sent, cats: catsDirty ? CATS : null, catsUpdated: catsDirty ? catsUpdated : 0 });
+    const res = await call(cfg, { txs: sent, cats: catsDirty ? packCats() : null, catsUpdated: catsDirty ? catsUpdated : 0 });
     if (res.error === "bad_key") { showSync("الكود السري مش مطابق للي في الـ Script. فكّي الربط واربطي تاني."); }
     else if (res.ok) {
       for (const t of sent) { const cur = txs.find(x => x.id === t.id); if (cur && (cur.updated || 0) <= (t.updated || 0)) dirty.delete(t.id); }
