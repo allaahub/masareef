@@ -166,8 +166,25 @@ details.panel summary{font-weight:700;cursor:pointer;min-height:32px;list-style-
     <div class="mtot" style="text-align:start;margin-top:10px">تغيير اسم بند بيغيّره في كل المصاريف القديمة كمان. مسح بند بيشيله من الاختيارات بس، والمصاريف القديمة بتفضل باسمه.</div>
   </details>
 
+  <h2>الربط بين الموبايل واللابتوب</h2>
+  <div class="panel" id="syncBox">
+    <div id="syncOn" hidden>
+      <div class="mtot" style="text-align:start;margin:0" id="syncState"></div>
+      <div class="bk"><button type="button" id="syncNow">زامن دلوقتي</button><button type="button" id="syncOff">فك الربط</button></div>
+    </div>
+    <div id="syncSetup">
+      <div class="mtot" style="text-align:start;margin:0">اربطي التطبيق بالـ Google Sheet بتاعك، وهتلاقي نفس البيانات على أي جهاز تربطيه.</div>
+      <label for="sUrl">لينك الـ Web app</label>
+      <input id="sUrl" inputmode="url" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec">
+      <label for="sKey">الكود السري</label>
+      <input id="sKey" autocomplete="off" placeholder="الكود اللي في أول سطر في الـ Script">
+      <button type="button" class="save" id="sConnect">اربط</button>
+      <div class="err" id="sErr"></div>
+    </div>
+  </div>
+
   <h2>نسخة احتياطية</h2>
-  <div class="mtot" style="text-align:start">بياناتك محفوظة على الموبايل ده بس. احفظ نسخة كل فترة في Files أو ابعتها لنفسك على واتساب، علشان لو غيّرت الموبايل.</div>
+  <div class="mtot" style="text-align:start">نسخة احتياطية في ملف، زيادة أمان. احفظ نسخة كل فترة في Files أو ابعتها لنفسك على واتساب، علشان لو غيّرت الموبايل.</div>
   <div class="bk">
     <button type="button" id="exp">احفظ نسخة</button>
     <label for="imp">رجّع من نسخة<input type="file" id="imp" accept=".json,application/json"></label>
@@ -191,6 +208,10 @@ let cat = "";
 let sCat = "";
 let sPer = "month";
 let pendingCatDel = null;
+let dirty = new Set();
+let catsUpdated = 0, catsDirty = false;
+let cfg = null;
+let syncTimer = null, syncing = false, again = false;
 let view = today().slice(0,7);
 let pendingDel = null;
 
@@ -198,9 +219,21 @@ function loadLocal(){
   try { txs = JSON.parse(localStorage.getItem("masareef") || "[]"); } catch(e){ txs = []; }
   try { const c = JSON.parse(localStorage.getItem("masareef_cats") || "null"); if (Array.isArray(c) && c.length) CATS = c.filter(x => typeof x === "string" && x.trim()); } catch(e){}
   cat = CATS[0] || "تانية";
+  try { dirty = new Set(JSON.parse(localStorage.getItem("masareef_dirty") || "[]")); } catch(e){}
+  try { catsUpdated = Number(localStorage.getItem("masareef_catsU")) || 0; } catch(e){}
+  try { cfg = JSON.parse(localStorage.getItem("masareef_sync") || "null"); } catch(e){}
+  for (const t of txs) if (t && !t.updated) { t.updated = t.created || 1; }
 }
-function saveLocal(){ try { localStorage.setItem("masareef", JSON.stringify(txs)); } catch(e){} }
-function saveCats(){ try { localStorage.setItem("masareef_cats", JSON.stringify(CATS)); } catch(e){} }
+function saveLocal(){
+  try { localStorage.setItem("masareef", JSON.stringify(txs)); localStorage.setItem("masareef_dirty", JSON.stringify([...dirty])); } catch(e){}
+  scheduleSync();
+}
+function saveCats(){
+  catsUpdated = Date.now();
+  try { localStorage.setItem("masareef_cats", JSON.stringify(CATS)); localStorage.setItem("masareef_catsU", String(catsUpdated)); } catch(e){}
+  catsDirty = true; scheduleSync();
+}
+function touch(t){ t.updated = Date.now(); dirty.add(t.id); }
 function addCat(name){
   name = String(name || "").trim().slice(0,30);
   if (!name) return false;
@@ -238,7 +271,7 @@ $("catList").addEventListener("click", e => {
     const nn = $("catList").querySelector(`input[data-i="${i}"]`).value.trim().slice(0,30);
     if (!nn || nn === old) return;
     if (CATS.includes(nn)) { CATS.splice(i,1); } else { CATS[i] = nn; }
-    for (const t of txs) if (t.type === "exp" && t.cat === old) t.cat = nn;
+    for (const t of txs) if (t.type === "exp" && t.cat === old) { t.cat = nn; touch(t); }
     if (cat === old) cat = nn; if (sCat === old) sCat = nn;
     saveCats(); saveLocal(); renderChips(); renderCatMgr(); render(); setStatus("اسم البند اتغيّر");
   }
@@ -285,11 +318,12 @@ $("form").addEventListener("submit", async e => {
               cat: kind === "exp" ? cat : "", note: $("note").value.trim().slice(0,80), date: $("date").value || today(), created: Date.now() };
   $("form").hidden = true;
   view = t.date.slice(0,7);
-  txs.push(t); saveLocal(); render();
+  touch(t); txs.push(t); saveLocal(); render();
 });
 
 async function remove(id){
-  txs = txs.filter(t => t.id !== id); saveLocal(); render();
+  const t = txs.find(x => x.id === id); if (!t) return;
+  t.deleted = true; touch(t); saveLocal(); render();
 }
 
 $("list").addEventListener("click", e => {
@@ -304,7 +338,7 @@ $("prev").onclick = () => shift(-1);
 $("next").onclick = () => shift(1);
 
 function render(){
-  const valid = txs.filter(t => t && t.amount > 0 && typeof t.date === "string");
+  const valid = txs.filter(t => t && !t.deleted && t.amount > 0 && typeof t.date === "string");
   let bal = 0; for (const t of valid) bal += t.type === "inc" ? t.amount : -t.amount;
   $("bal").textContent = fmt(bal); $("bal").classList.toggle("neg", bal < 0);
   const cur = today().slice(0,7);
@@ -359,7 +393,7 @@ try { navigator.storage && navigator.storage.persist && navigator.storage.persis
 
 $("exp").onclick = async () => {
   const name = "masareef-" + today() + ".json";
-  const blob = new Blob([JSON.stringify({app:"masareef",v:2,txs,cats:CATS}, null, 1)], {type:"application/json"});
+  const blob = new Blob([JSON.stringify({app:"masareef",v:3,txs:txs.filter(t => !t.deleted),cats:CATS}, null, 1)], {type:"application/json"});
   try {
     const f = new File([blob], name, {type:"application/json"});
     if (navigator.canShare && navigator.canShare({files:[f]})) { await navigator.share({files:[f], title:"مصاريفي"}); setStatus("النسخة اتحفظت"); return; }
@@ -374,11 +408,92 @@ $("imp").onchange = async e => {
     const list = Array.isArray(data) ? data : data.txs;
     if (!Array.isArray(list)) throw 0;
     const ids = new Set(txs.map(t => t.id)); let added = 0;
-    for (const t of list) if (t && t.id && t.amount > 0 && typeof t.date === "string" && !ids.has(t.id)) { txs.push(t); added++; }
+    for (const t of list) if (t && t.id && t.amount > 0 && typeof t.date === "string" && !ids.has(t.id)) { touch(t); txs.push(t); added++; }
     if (data && Array.isArray(data.cats)) for (const c of data.cats) if (typeof c === "string" && c.trim() && !CATS.includes(c.trim())) CATS.push(c.trim().slice(0,30));
     saveCats(); saveLocal(); renderChips(); renderCatMgr(); render(); setStatus(`اترجّع ${added} عملية`);
   } catch(err) { setStatus("الملف ده مش نسخة من مصاريفي"); }
 };
+
+// ---------- Google Sheet sync ----------
+function scheduleSync(){ if (!cfg) return; clearTimeout(syncTimer); syncTimer = setTimeout(syncNow, 800); }
+function hhmm(){ const d = new Date(); return d.getHours() + ":" + String(d.getMinutes()).padStart(2,"0"); }
+function showSync(msg){
+  $("syncOn").hidden = !cfg; $("syncSetup").hidden = !!cfg;
+  if (msg) $("syncState").textContent = msg;
+}
+async function call(c, body){
+  const r = await fetch(c.url, { method: "POST", headers: {"Content-Type": "text/plain;charset=utf-8"}, body: JSON.stringify(Object.assign({key: c.key}, body)), redirect: "follow" });
+  if (!r.ok) throw new Error("http");
+  return r.json();
+}
+function merge(res){
+  const byId = new Map(txs.map(t => [t.id, t]));
+  for (const rt of res.txs || []) {
+    if (!rt || !rt.id) continue;
+    const lt = byId.get(rt.id);
+    if (!lt || (Number(rt.updated) || 0) >= (Number(lt.updated) || 0)) {
+      if (lt && dirty.has(lt.id) && (Number(lt.updated) || 0) > (Number(rt.updated) || 0)) continue;
+      byId.set(rt.id, rt);
+      if (lt && (Number(rt.updated) || 0) >= (Number(lt.updated) || 0)) dirty.delete(rt.id);
+    }
+  }
+  txs = [...byId.values()];
+  if (Array.isArray(res.cats) && res.cats.length && (Number(res.catsUpdated) || 0) > catsUpdated) {
+    CATS = res.cats.filter(x => typeof x === "string" && x.trim());
+    catsUpdated = Number(res.catsUpdated);
+    try { localStorage.setItem("masareef_cats", JSON.stringify(CATS)); localStorage.setItem("masareef_catsU", String(catsUpdated)); } catch(e){}
+  }
+  try { localStorage.setItem("masareef", JSON.stringify(txs)); localStorage.setItem("masareef_dirty", JSON.stringify([...dirty])); } catch(e){}
+  renderChips(); renderCatMgr(); render();
+}
+async function syncNow(){
+  if (!cfg) return;
+  if (syncing) { again = true; return; }
+  if (navigator.onLine === false) { showSync("مفيش نت دلوقتي. اللي بتسجّليه محفوظ هنا، وهيتبعت أول ما النت يرجع."); return; }
+  syncing = true;
+  const sent = txs.filter(t => dirty.has(t.id)).map(t => Object.assign({}, t));
+  try {
+    const res = await call(cfg, { txs: sent, cats: catsDirty ? CATS : null, catsUpdated: catsDirty ? catsUpdated : 0 });
+    if (res.error === "bad_key") { showSync("الكود السري مش مطابق للي في الـ Script. فكّي الربط واربطي تاني."); }
+    else if (res.ok) {
+      for (const t of sent) { const cur = txs.find(x => x.id === t.id); if (cur && (cur.updated || 0) <= (t.updated || 0)) dirty.delete(t.id); }
+      catsDirty = false;
+      merge(res);
+      showSync("✓ متزامن مع الـ Google Sheet — آخر مرة " + hhmm());
+    }
+  } catch(e) { showSync("ما قدرتش أوصل للشيت دلوقتي. البيانات محفوظة هنا وهحاول تاني."); }
+  syncing = false;
+  if (again) { again = false; scheduleSync(); }
+}
+$("sConnect").onclick = async () => {
+  const url = $("sUrl").value.trim(), key = $("sKey").value.trim();
+  $("sErr").textContent = "";
+  if (!/^https:\/\/script\.google(usercontent)?\.com\//.test(url)) { $("sErr").textContent = "اللينك لازم يبدأ بـ https://script.google.com"; return; }
+  if (!key) { $("sErr").textContent = "اكتبي الكود السري"; return; }
+  $("sConnect").textContent = "بيربط…";
+  try {
+    const res = await call({url, key}, {});
+    if (res.error === "bad_key") { $("sErr").textContent = "الكود السري مش مطابق للي في الـ Script"; }
+    else if (res.ok) {
+      cfg = {url, key};
+      try { localStorage.setItem("masareef_sync", JSON.stringify(cfg)); } catch(e){}
+      for (const t of txs) dirty.add(t.id);
+      if (!(res.catsUpdated > catsUpdated)) { catsDirty = true; if (!catsUpdated) catsUpdated = Date.now(); }
+      showSync("بيزامن…"); await syncNow();
+    } else { $("sErr").textContent = "الرد مش مفهوم. اتأكدي إن اللينك بتاع الـ Web app وبيخلص بـ /exec"; }
+  } catch(e) { $("sErr").textContent = "ما قدرتش أوصل للينك. اتأكدي إن الـ Deploy متعمل بـ Who has access: Anyone"; }
+  $("sConnect").textContent = "اربط";
+};
+$("syncNow").onclick = () => { showSync("بيزامن…"); syncNow(); };
+$("syncOff").onclick = () => {
+  if ($("syncOff").dataset.sure !== "1") { $("syncOff").dataset.sure = "1"; $("syncOff").textContent = "متأكدة؟"; setTimeout(() => { $("syncOff").dataset.sure = ""; $("syncOff").textContent = "فك الربط"; }, 3000); return; }
+  cfg = null; try { localStorage.removeItem("masareef_sync"); } catch(e){}
+  $("syncOff").dataset.sure = ""; $("syncOff").textContent = "فك الربط"; showSync();
+};
+showSync(cfg ? "بيزامن…" : "");
+window.addEventListener("online", scheduleSync);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") scheduleSync(); });
+if (cfg) syncNow();
 
 if ("serviceWorker" in navigator) { window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch(() => {}); }); }
 }
