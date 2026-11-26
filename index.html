@@ -13,420 +13,635 @@
 <link rel="icon" href="icon-192.png">
 <title>مصاريفي</title>
 <style>
-/* VOICE: calm, personal money notebook; quick to use one-handed.
-   IDEA: a pocket ledger — balance on the cover, entries below.
-   PICTURE: the big mint balance card + the add form, at the top.
-   COLOUR and TYPE: black/white plus one mint field; IBM Plex Sans Arabic.
-   LAYOUT: single column, 560px max, phone-first. */
-:root{color-scheme:light dark;--bg:light-dark(#fff,#0b0b0b);--ink:light-dark(#111,#f2f2f2);--mut:light-dark(#666,#a3a3a3);--line:light-dark(#e6e6e6,#262626);--card:light-dark(#f6f6f6,#161616);--mint:#b8f5d0;--mintink:#0b3d22;--red:light-dark(#b42318,#ff8a80)}
+/* VOICE: calm personal money notebook, one-handed.
+   IDEA: a pocket ledger app — cover shows what's left, pages per month.
+   PICTURE: mint balance card on Home; bars with budget tracks on Month.
+   COLOUR and TYPE: black/white + mint field, red only for over-budget; system Arabic font.
+   LAYOUT: one column, bottom tab bar, entry form as a bottom sheet. */
+:root{color-scheme:light dark;--bg:light-dark(#fff,#0b0b0b);--ink:light-dark(#111,#f2f2f2);--mut:light-dark(#6b6b6b,#a3a3a3);--line:light-dark(#e8e8e8,#262626);--card:light-dark(#f5f5f5,#161616);--mint:#b8f5d0;--mintink:#0b3d22;--red:light-dark(#c4311f,#ff8a80);--green:light-dark(#1f7a45,#7fe0a6);--warn:light-dark(#a15c00,#ffc266)}
 :root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
-*{box-sizing:border-box;min-width:0}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 -apple-system,"SF Arabic","Geeza Pro","IBM Plex Sans Arabic",Tahoma,sans-serif;overflow-x:clip}
-.wrap{max-width:560px;margin:0 auto;padding:calc(16px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(48px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left))}
-.bk{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
-.bk button,.bk label{background:var(--card);border:1px solid var(--line);color:var(--ink);font-size:15px;display:flex;align-items:center;justify-content:center;border-radius:14px;min-height:48px;margin:0;cursor:pointer}
-.bk input{display:none}
-h1{font-size:22px;margin:4px 0 12px;font-weight:700}
-.bal{background:var(--mint);color:var(--mintink);border-radius:20px;padding:20px}
+*{box-sizing:border-box;min-width:0;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 -apple-system,"SF Arabic","Geeza Pro","IBM Plex Sans Arabic",Tahoma,sans-serif;overflow-x:clip}
+.wrap{max-width:560px;margin:0 auto;padding:calc(12px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(96px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left))}
+.view[hidden]{display:none}
+h1{font-size:26px;margin:6px 0 14px;font-weight:700;line-height:1.1}
+h2{font-size:17px;margin:24px 0 8px}
+.top{display:flex;align-items:center;justify-content:space-between}
+.dot{font-size:12px;color:var(--mut);display:flex;align-items:center;gap:6px}
+.dot i{width:8px;height:8px;border-radius:50%;background:var(--line);display:inline-block}
+.dot.on i{background:#2fbf71}.dot.err i{background:var(--red)}
+.bal{background:var(--mint);color:var(--mintink);border-radius:22px;padding:18px 18px 16px}
 .bal small{font-size:14px;display:block}
-.big{font-size:clamp(38px,11vw,52px);font-weight:700;line-height:1.1;white-space:nowrap}
+.big{font-size:clamp(38px,11vw,50px);font-weight:700;line-height:1.1;white-space:nowrap}
 .big.neg{color:#8a1c12}
-.row3{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
-.row3 div{background:rgba(255,255,255,.55);border-radius:12px;padding:8px 10px;font-size:14px}
-.row3 b{display:block;font-size:18px;white-space:nowrap}
-.acts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
-button{font:inherit;cursor:pointer;border:0;border-radius:14px;min-height:48px;padding:0 14px}
-button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #2e7d4f;outline-offset:2px}
-.b-ex{background:var(--ink);color:var(--bg);font-weight:700}
-.b-in{background:var(--card);color:var(--ink);border:1px solid var(--line);font-weight:700}
-.panel{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:16px}
-.panel[hidden]{display:none}
-label{display:block;font-size:14px;color:var(--mut);margin:10px 0 4px}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.duo div{background:rgba(255,255,255,.55);border-radius:12px;padding:8px 10px;font-size:13px}
+.duo b{display:block;font-size:18px;white-space:nowrap}
+.budline{margin-top:12px;font-size:13px}
+.budline .track{background:rgba(255,255,255,.6);margin-top:4px}
+.budline .fill{background:var(--mintink)}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0 4px}
+button{font:inherit;cursor:pointer;border:0;border-radius:14px;min-height:48px;padding:0 14px;color:inherit;background:none}
+button:focus-visible,input:focus-visible,select:focus-visible,.it:focus-visible{outline:3px solid #2e7d4f;outline-offset:2px}
+.b-dark{background:var(--ink);color:var(--bg);font-weight:700}
+.b-soft{background:var(--card);border:1px solid var(--line);font-weight:700}
+.b-mint{background:var(--mint);color:var(--mintink);font-weight:700}
+.b-red{background:transparent;color:var(--red);border:1px solid var(--red);font-weight:700}
+.b-red.sure{background:var(--red);color:#fff}
+.link{min-height:36px;padding:0 4px;color:var(--mut);font-size:14px;text-decoration:underline}
+.sec{display:flex;align-items:baseline;justify-content:space-between;margin-top:22px}
+.sec h2{margin:0 0 6px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px 16px}
+.alert{display:flex;gap:10px;align-items:flex-start;border-radius:14px;padding:10px 12px;margin-top:8px;font-size:14px;border:1px solid var(--line)}
+.alert b{white-space:nowrap}
+.alert.over{border-color:var(--red);color:var(--red)}
+.alert.near{border-color:var(--warn);color:var(--warn)}
+label.lb{display:block;font-size:14px;color:var(--mut);margin:12px 0 4px}
 input,select{font:inherit;font-size:16px;width:100%;min-height:48px;border:1px solid var(--line);border-radius:12px;padding:0 12px;background:var(--bg);color:var(--ink)}
-.amt{font-size:26px;font-weight:700}
+.amt{font-size:30px;font-weight:700;text-align:center}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
-.chip{min-height:40px;border-radius:999px;background:var(--bg);border:1px solid var(--line);color:var(--ink);padding:0 14px;font-size:15px}
+.chip{min-height:40px;border-radius:999px;background:var(--bg);border:1px solid var(--line);padding:0 14px;font-size:15px}
 .chip[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.save{width:100%;margin-top:14px;background:var(--mint);color:var(--mintink);font-weight:700;font-size:17px}
-.err{color:var(--red);font-size:14px;min-height:20px;margin-top:6px}
-h2{font-size:18px;margin:22px 0 8px}
-.mbar{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.mbar button{background:var(--card);border:1px solid var(--line);color:var(--ink);min-width:48px;font-size:20px}
-.mname{font-weight:700;font-size:18px;text-align:center}
-.mtot{font-size:15px;color:var(--mut);text-align:center;margin:6px 0 10px}
-.mtot b{color:var(--ink);font-size:22px}
-.cat{display:grid;grid-template-columns:7.5em 1fr auto;align-items:center;gap:8px;font-size:15px;margin:6px 0}
-.track{height:12px;background:var(--card);border-radius:6px;overflow:hidden}
-.fill{height:100%;background:var(--ink);border-radius:6px}
-.num{white-space:nowrap;font-variant-numeric:tabular-nums}
-.day{font-size:13px;color:var(--mut);margin:14px 0 4px;border-bottom:1px solid var(--line);padding-bottom:4px}
-.it{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
-.it .t{font-weight:500}.it .n{font-size:13px;color:var(--mut);overflow-wrap:anywhere}
-.it .a{font-weight:700}.it .a.in{color:#1f7a45}
-.del{min-height:40px;min-width:40px;background:transparent;color:var(--mut);font-size:18px;padding:0 8px}
-.del.sure{background:var(--red);color:#fff;font-size:13px}
-.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:12px}
-.seg button{min-height:44px;background:var(--bg);border:1px solid var(--line);color:var(--ink);font-size:14px;padding:0 6px}
-.seg button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
-.sum3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0 6px}
-.sum3 div{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:8px;font-size:13px;color:var(--mut);text-align:center}
-.sum3 b{display:block;color:var(--ink);font-size:18px;white-space:nowrap}
-.cat{cursor:pointer}
+.chip.add{border-style:dashed;color:var(--mut)}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px}
+.seg button{min-height:40px;border-radius:10px;font-size:14px;padding:0 6px}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--bg);font-weight:700}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .addrow{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:8px}
 .addrow[hidden]{display:none}
-.addrow button{background:var(--ink);color:var(--bg);font-weight:700}
-.chip.add{border-style:dashed;color:var(--mut)}
-details.panel summary{font-weight:700;cursor:pointer;min-height:32px;list-style-position:inside}
+.check{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:15px;min-height:44px}
+.check input{width:22px;height:22px;min-height:0;accent-color:#111}
+.err{color:var(--red);font-size:14px;min-height:20px;margin-top:6px}
+.mbar{display:grid;grid-template-columns:48px 1fr 48px;align-items:center;gap:8px}
+.mbar button{background:var(--card);border:1px solid var(--line);font-size:20px;padding:0}
+.mname{font-weight:700;font-size:18px;text-align:center}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.kpis div{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 8px;font-size:12px;color:var(--mut);text-align:center}
+.kpis b{display:block;color:var(--ink);font-size:17px;white-space:nowrap;margin-top:2px}
+.up{color:var(--red)!important}.down{color:var(--green)!important}
+.cat{display:block;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.cat .h{display:flex;justify-content:space-between;gap:8px;font-size:15px;margin-bottom:6px}
+.cat .h span:last-child{white-space:nowrap;font-variant-numeric:tabular-nums}
+.cat small{display:block;font-size:12px;color:var(--mut);margin-top:4px}
+.cat small.over{color:var(--red)}.cat small.near{color:var(--warn)}
+.track{height:10px;background:var(--card);border-radius:5px;overflow:hidden}
+.fill{height:100%;background:var(--ink);border-radius:5px}
+.fill.near{background:var(--warn)}.fill.over{background:var(--red)}
+.num{white-space:nowrap;font-variant-numeric:tabular-nums}
+.day{font-size:13px;color:var(--mut);margin:14px 0 2px;padding-bottom:4px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between}
+.it{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer;width:100%;text-align:start;border-radius:0;min-height:56px}
+.it .t{font-weight:600}
+.it .n{font-size:13px;color:var(--mut);overflow-wrap:anywhere}
+.it .a{font-weight:700}.it .a.in{color:var(--green)}
+.tag{font-size:11px;border:1px solid var(--line);border-radius:6px;padding:0 5px;color:var(--mut);margin-inline-start:6px;font-weight:400}
+.empty{color:var(--mut);text-align:center;padding:22px 0;font-size:15px}
+.trend{display:flex;align-items:flex-end;gap:8px;height:180px;padding-top:24px}
+.tcol{flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end;cursor:pointer}
+.tbars{display:flex;align-items:flex-end;gap:3px;height:100%;width:100%;justify-content:center}
+.tb{width:60%;max-width:34px;border-radius:5px 5px 0 0;background:var(--ink);position:relative;min-height:2px}
+.tb.inc{background:var(--mint)}
+.tcol.cur .tb:not(.inc){background:#2fbf71}
+.tv{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);font-size:11px;white-space:nowrap;color:var(--mut);padding-bottom:2px}
+.tl{font-size:12px;color:var(--mut);margin-top:6px;white-space:nowrap}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--mut);margin-top:8px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-inline-end:4px;vertical-align:-1px}
+.note{font-size:14px;color:var(--mut);margin-top:10px}
+.sum3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0 6px}
+.sum3 div{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:8px;font-size:12px;color:var(--mut);text-align:center}
+.sum3 b{display:block;color:var(--ink);font-size:17px;white-space:nowrap}
 .crow{display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center;margin-top:8px}
 .crow input{min-height:44px}
-.crow button{min-height:44px;min-width:44px;background:var(--bg);border:1px solid var(--line);color:var(--ink);font-size:14px;padding:0 10px}
+.crow button{min-height:44px;min-width:44px;background:var(--bg);border:1px solid var(--line);font-size:14px;padding:0 10px}
 .crow button.sure{background:var(--red);color:#fff;border-color:var(--red)}
-.empty{color:var(--mut);text-align:center;padding:20px 0}
-.note{font-size:13px;color:var(--mut);text-align:center;margin-top:24px}
-@media (prefers-reduced-motion:no-preference){.fill{transition:width .4s ease}}
+.brow{display:grid;grid-template-columns:1fr 9em;gap:8px;align-items:center;margin-top:8px;font-size:15px}
+.brow input{min-height:44px;text-align:center}
+.tabs{position:fixed;inset-inline:0;bottom:0;background:light-dark(rgba(255,255,255,.94),rgba(12,12,12,.94));backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);padding:4px max(8px,env(safe-area-inset-right)) calc(4px + env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left));z-index:5}
+.tabs button{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:var(--mut);min-height:52px;padding:4px 0}
+.tabs button svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tabs button[aria-current=page]{color:var(--ink);font-weight:700}
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:8}
+.scrim[hidden]{display:none}
+.sheet{position:fixed;inset-inline:0;bottom:0;max-width:560px;margin:0 auto;background:var(--bg);border-radius:22px 22px 0 0;z-index:9;max-height:92vh;max-height:92dvh;overflow:auto;padding:10px 18px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -8px 30px rgba(0,0,0,.2)}
+.sheet[hidden]{display:none}
+.grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 10px}
+.shead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.shead b{font-size:18px}
+.shead button{min-height:40px;min-width:40px;font-size:20px;color:var(--mut);padding:0}
+.sbtns{display:grid;grid-template-columns:1fr;gap:10px;margin-top:16px}
+.sbtns.two{grid-template-columns:1fr auto}
+.toast{position:fixed;left:50%;width:max-content;max-width:min(92vw,420px);bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;opacity:0;pointer-events:none;z-index:20;max-width:calc(100% - 32px);text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.warn{background:var(--red);color:#fff}
+.mtxt{font-size:14px;color:var(--mut);margin:0}
+.bk{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.bk label{background:var(--bg);border:1px solid var(--line);font-size:15px;display:flex;align-items:center;justify-content:center;border-radius:14px;min-height:48px;cursor:pointer;font-weight:700}
+.bk input{display:none}
+.stack>*+*{margin-top:12px}
+@media (prefers-reduced-motion:no-preference){.fill{transition:width .4s ease}.toast{transition:opacity .2s,transform .2s}.sheet:not([hidden]){animation:up .22s ease-out}@keyframes up{from{transform:translateY(40px);opacity:.6}}}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>مصاريفي</h1>
+<main class="wrap">
 
-  <section class="bal" aria-live="polite">
-    <small>الباقي معايا</small>
-    <div class="big" id="bal">0 ج</div>
-    <div class="row3">
-      <div>صرفت الشهر ده<b id="mSpent">0 ج</b></div>
-      <div>دخل الشهر ده<b id="mIn">0 ج</b></div>
+  <!-- ============ HOME ============ -->
+  <section class="view" id="v-home">
+    <div class="top"><h1>مصاريفي</h1><span class="dot" id="dot" hidden><i></i><span id="dotTxt"></span></span></div>
+    <div class="bal" aria-live="polite">
+      <small>الباقي معايا</small>
+      <div class="big" id="bal">0 ج</div>
+      <div class="duo">
+        <div>صرفت الشهر ده<b id="hSpent">0 ج</b></div>
+        <div>دخل الشهر ده<b id="hIn">0 ج</b></div>
+      </div>
+      <div class="budline" id="budLine" hidden></div>
+    </div>
+    <div class="acts">
+      <button class="b-dark" id="addEx">− سجّل مصروف</button>
+      <button class="b-soft" id="addIn">+ فلوس دخلت</button>
+    </div>
+    <div id="alerts"></div>
+    <div class="sec"><h2>آخر حاجات</h2><button class="link" data-go="month">عرض الشهر كله</button></div>
+    <div id="recent"></div>
+  </section>
+
+  <!-- ============ MONTH ============ -->
+  <section class="view" id="v-month" hidden>
+    <h1>الشهر</h1>
+    <div class="mbar">
+      <button id="prev" aria-label="الشهر اللي قبله">›</button>
+      <div class="mname" id="mname"></div>
+      <button id="next" aria-label="الشهر اللي بعده">‹</button>
+    </div>
+    <div class="kpis">
+      <div>المصاريف<b id="mExp">0 ج</b></div>
+      <div>الدخل<b id="mInc">0 ج</b></div>
+      <div id="mCmpL">عن الشهر اللي فات<b id="mCmp">—</b></div>
+    </div>
+    <h2>البنود</h2>
+    <div id="cats"></div>
+    <h2>كل العمليات</h2>
+    <div id="list"></div>
+  </section>
+
+  <!-- ============ REPORTS ============ -->
+  <section class="view" id="v-reports" hidden>
+    <h1>التقارير</h1>
+    <div class="card">
+      <b>مصاريفك آخر 6 شهور</b>
+      <div class="trend" id="trend"></div>
+      <p class="note" id="trendNote"></p>
+    </div>
+    <h2 id="sumH">ملخص بالبند</h2>
+    <div class="card">
+      <label class="lb" for="sCat" style="margin-top:0">البند</label>
+      <select id="sCat"></select>
+      <div class="seg" id="sPer" style="margin-top:12px">
+        <button type="button" data-p="month" id="perMonth">الشهر</button>
+        <button type="button" data-p="year" id="perYear">السنة</button>
+        <button type="button" data-p="all">كل الوقت</button>
+      </div>
+      <div class="sum3">
+        <div>الإجمالي<b id="sTot">0 ج</b></div>
+        <div>عدد المرات<b id="sCnt">0</b></div>
+        <div>متوسط المرة<b id="sAvg">0 ج</b></div>
+      </div>
+      <div id="sList"></div>
     </div>
   </section>
 
-  <div class="acts">
-    <button class="b-ex" id="openEx">− سجّل مصروف</button>
-    <button class="b-in" id="openIn">+ فلوس دخلت</button>
-  </div>
+  <!-- ============ SETTINGS ============ -->
+  <section class="view stack" id="v-settings" hidden>
+    <h1>الإعدادات</h1>
 
-  <form class="panel" id="form" hidden>
-    <div style="font-weight:700" id="formTitle">مصروف جديد</div>
-    <label for="amt">المبلغ (جنيه)</label>
-    <input id="amt" class="amt" inputmode="decimal" autocomplete="off" placeholder="0">
-    <div id="catWrap">
-      <label id="catLbl">صرفته في إيه؟ (اختاري بند)</label>
-      <div class="chips" id="chips"></div>
-      <div class="addrow" id="newCatRow" hidden>
-        <input id="newCat" maxlength="30" placeholder="اسم البند الجديد">
-        <button type="button" id="newCatAdd">إضافة</button>
+    <div class="card">
+      <b>الميزانية الشهرية لكل بند</b>
+      <p class="mtxt" style="margin-top:4px">حطّي حد لكل بند، والتطبيق هينبّهك لما توصلي 80% منه ولما تعدّيه. سيبي الخانة فاضية لو مش عايزة حد.</p>
+      <div id="budList"></div>
+      <div class="sbtns"><button class="b-mint" id="budSave">حفظ الميزانيات</button></div>
+    </div>
+
+    <div class="card">
+      <b>المصاريف الثابتة كل شهر</b>
+      <p class="mtxt" style="margin-top:4px">زي الإيجار أو الفواتير أو المرتب. بتتسجّل لوحدها في اليوم اللي تحدديه من كل شهر.</p>
+      <div id="recList"></div>
+      <div class="sbtns"><button class="b-soft" id="recAdd">+ إضافة حاجة ثابتة</button></div>
+    </div>
+
+    <div class="card">
+      <b>البنود</b>
+      <div class="seg" id="mgrSeg" style="margin-top:10px">
+        <button type="button" data-t="exp">بنود المصاريف</button>
+        <button type="button" data-t="inc">بنود الدخل</button>
+      </div>
+      <div id="catList"></div>
+      <div class="addrow"><input id="mgrNew" maxlength="30" placeholder="بند جديد"><button type="button" class="b-dark" id="mgrAdd">إضافة</button></div>
+      <p class="mtxt" style="margin-top:10px">تغيير اسم بند بيغيّره في كل المصاريف القديمة كمان. مسح بند بيشيله من الاختيارات بس.</p>
+    </div>
+
+    <div class="card" id="syncBox">
+      <b>الربط بين الموبايل واللابتوب</b>
+      <div id="syncOn" hidden>
+        <p class="mtxt" style="margin-top:6px" id="syncState"></p>
+        <div class="bk"><button type="button" class="b-soft" id="syncNow">زامن دلوقتي</button><button type="button" class="b-red" id="syncOff">فك الربط</button></div>
+      </div>
+      <div id="syncSetup">
+        <p class="mtxt" style="margin-top:6px">اربطي التطبيق بالـ Google Sheet بتاعك، وهتلاقي نفس البيانات على أي جهاز تربطيه.</p>
+        <label class="lb" for="sUrl">لينك الـ Web app</label>
+        <input id="sUrl" inputmode="url" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec">
+        <label class="lb" for="sKey">الكود السري</label>
+        <input id="sKey" autocomplete="off" placeholder="الكود اللي في أول سطر في الـ Script">
+        <div class="sbtns"><button type="button" class="b-mint" id="sConnect">اربط</button></div>
+        <div class="err" id="sErr"></div>
       </div>
     </div>
-    <label for="note">ملاحظة (اختياري)</label>
-    <input id="note" maxlength="80" placeholder="مثلاً: عيش وخضار">
-    <div class="two">
-      <div><label for="date">التاريخ</label><input id="date" type="date"></div>
-      <div style="display:flex;align-items:flex-end"><button type="button" class="b-in" id="cancel" style="width:100%">إلغاء</button></div>
-    </div>
-    <button class="save" type="submit">حفظ</button>
-    <div class="err" id="err"></div>
-  </form>
 
-  <h2>كل شهر</h2>
-  <div class="mbar">
-    <button id="prev" aria-label="الشهر اللي قبله">›</button>
-    <div class="mname" id="mname"></div>
-    <button id="next" aria-label="الشهر اللي بعده">‹</button>
+    <div class="card">
+      <b>نسخة احتياطية</b>
+      <p class="mtxt" style="margin-top:4px">نسخة في ملف، زيادة أمان. احفظيها في Files أو ابعتيها لنفسك على واتساب.</p>
+      <div class="bk">
+        <button type="button" class="b-soft" id="exp">احفظ نسخة</button>
+        <label for="imp">رجّع من نسخة<input type="file" id="imp" accept=".json,application/json"></label>
+      </div>
+    </div>
+  </section>
+</main>
+
+<nav class="tabs" aria-label="التنقل">
+  <button data-tab="home" aria-current="page"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>الرئيسية</button>
+  <button data-tab="month"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>الشهر</button>
+  <button data-tab="reports"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>التقارير</button>
+  <button data-tab="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>الإعدادات</button>
+</nav>
+
+<div class="scrim" id="scrim" hidden></div>
+<form class="sheet" id="sheet" hidden aria-labelledby="sTitle">
+  <div class="grab"></div>
+  <div class="shead"><b id="sTitle">مصروف جديد</b><button type="button" id="sClose" aria-label="قفل">✕</button></div>
+  <div class="seg" id="kindSeg">
+    <button type="button" data-k="exp">مصروف</button>
+    <button type="button" data-k="inc">فلوس دخلت</button>
   </div>
-  <div class="mtot">مصاريف الشهر: <b class="num" id="mTot">0 ج</b></div>
-  <div id="cats"></div>
-
-  <h2 id="sumH">ملخص بالبند</h2>
-  <div class="panel">
-    <label for="sCat">اختاري البند</label>
-    <select id="sCat"></select>
-    <div class="seg" id="sPer">
-      <button type="button" data-p="month" aria-pressed="true" id="perMonth">الشهر ده</button>
-      <button type="button" data-p="year" aria-pressed="false" id="perYear">السنة دي</button>
-      <button type="button" data-p="all" aria-pressed="false">كل الوقت</button>
-    </div>
-    <div class="sum3">
-      <div>الإجمالي<b id="sTot">0 ج</b></div>
-      <div>عدد المرات<b id="sCnt">0</b></div>
-      <div>متوسط المرة<b id="sAvg">0 ج</b></div>
-    </div>
-    <div id="sList"></div>
+  <label class="lb" for="amt">المبلغ (جنيه)</label>
+  <input id="amt" class="amt" inputmode="decimal" autocomplete="off" placeholder="0">
+  <label class="lb" id="catLbl">صرفته في إيه؟</label>
+  <div class="chips" id="chips"></div>
+  <div class="addrow" id="newCatRow" hidden>
+    <input id="newCat" maxlength="30" placeholder="اسم البند الجديد">
+    <button type="button" class="b-dark" id="newCatAdd">إضافة</button>
   </div>
-
-  <h2>اللي اتسجّل في الشهر ده</h2>
-  <div id="list"></div>
-
-  <details class="panel" id="catMgr">
-    <summary>البنود بتاعتي (إضافة / تعديل / مسح)</summary>
-    <div class="seg" id="mgrSeg" style="grid-template-columns:1fr 1fr">
-      <button type="button" data-t="exp" aria-pressed="true">بنود المصاريف</button>
-      <button type="button" data-t="inc" aria-pressed="false">بنود الفلوس اللي بتدخل</button>
-    </div>
-    <div id="catList"></div>
-    <div class="addrow">
-      <input id="mgrNew" maxlength="30" placeholder="بند جديد">
-      <button type="button" id="mgrAdd">إضافة</button>
-    </div>
-    <div class="mtot" style="text-align:start;margin-top:10px">تغيير اسم بند بيغيّره في كل المصاريف القديمة كمان. مسح بند بيشيله من الاختيارات بس، والمصاريف القديمة بتفضل باسمه.</div>
-  </details>
-
-  <h2>الربط بين الموبايل واللابتوب</h2>
-  <div class="panel" id="syncBox">
-    <div id="syncOn" hidden>
-      <div class="mtot" style="text-align:start;margin:0" id="syncState"></div>
-      <div class="bk"><button type="button" id="syncNow">زامن دلوقتي</button><button type="button" id="syncOff">فك الربط</button></div>
-    </div>
-    <div id="syncSetup">
-      <div class="mtot" style="text-align:start;margin:0">اربطي التطبيق بالـ Google Sheet بتاعك، وهتلاقي نفس البيانات على أي جهاز تربطيه.</div>
-      <label for="sUrl">لينك الـ Web app</label>
-      <input id="sUrl" inputmode="url" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec">
-      <label for="sKey">الكود السري</label>
-      <input id="sKey" autocomplete="off" placeholder="الكود اللي في أول سطر في الـ Script">
-      <button type="button" class="save" id="sConnect">اربط</button>
-      <div class="err" id="sErr"></div>
-    </div>
+  <label class="lb" for="note">ملاحظة (اختياري)</label>
+  <input id="note" maxlength="80" placeholder="مثلاً: عيش وخضار">
+  <div id="dateWrap"><label class="lb" for="date">التاريخ</label><input id="date" type="date"></div>
+  <div id="dayWrap" hidden><label class="lb" for="day">يتسجّل يوم كام في الشهر؟</label><input id="day" type="number" inputmode="numeric" min="1" max="28" placeholder="1"></div>
+  <label class="check" id="repWrap"><input type="checkbox" id="rep"> كرّريها لوحدها كل شهر في نفس اليوم</label>
+  <div class="sbtns" id="sBtns">
+    <button class="b-mint" type="submit" id="sSave">حفظ</button>
+    <button class="b-red" type="button" id="sDel" hidden>مسح</button>
   </div>
-
-  <h2>نسخة احتياطية</h2>
-  <div class="mtot" style="text-align:start">نسخة احتياطية في ملف، زيادة أمان. احفظ نسخة كل فترة في Files أو ابعتها لنفسك على واتساب، علشان لو غيّرت الموبايل.</div>
-  <div class="bk">
-    <button type="button" id="exp">احفظ نسخة</button>
-    <label for="imp">رجّع من نسخة<input type="file" id="imp" accept=".json,application/json"></label>
-  </div>
-  <div class="note" id="status"></div>
-</div>
+  <div class="err" id="err"></div>
+</form>
+<div class="toast" id="toast" role="status"></div>
 
 <script>
 {
 const DEFAULT_CATS = ["أكل وبقالة","مواصلات","بيت","فواتير","أولاد ومدارس","لبس","صحة","خروج","تانية"];
-let CATS = DEFAULT_CATS.slice();
 const DEFAULT_ICATS = ["مرتب","شغل إضافي","هدية","تانية"];
-let ICATS = DEFAULT_ICATS.slice();
-let mgrType = "exp";
-const listOf = ty => ty === "inc" ? ICATS : CATS;
 const MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt = n => Math.round(n).toLocaleString("en-US") + " ج";
+const fmtK = n => n >= 10000 ? Math.round(n/1000) + "k" : n >= 1000 ? (n/1000).toFixed(1).replace(".0","") + "k" : String(Math.round(n));
 const today = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
+const ym = d => d.slice(0,7);
+const addM = (m, n) => { let [y,mo] = m.split("-").map(Number); mo += n; while (mo < 1){mo += 12; y--;} while (mo > 12){mo -= 12; y++;} return `${y}-${String(mo).padStart(2,"0")}`; };
+const mLabel = m => { const [y,mo] = m.split("-").map(Number); return `${MONTHS[mo-1]} ${y}`; };
+const newId = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+const parseAmt = v => parseFloat(String(v).replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/[,٬\s]/g, "").replace("٫", "."));
+const LS = { get(k, d){ try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch(e){ return d; } },
+             set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} } };
 
-let txs = [];
-let kind = "exp";
-let cat = "";
-let sCat = "";
-let sPer = "month";
+// ---------- state ----------
+let txs = LS.get("masareef", []);
+if (!Array.isArray(txs)) txs = [];
+let CATS = LS.get("masareef_cats", null); if (!Array.isArray(CATS) || !CATS.length) CATS = DEFAULT_CATS.slice();
+let ICATS = LS.get("masareef_icats", null); if (!Array.isArray(ICATS) || !ICATS.length) ICATS = DEFAULT_ICATS.slice();
+let budgets = LS.get("masareef_budgets", {}); if (!budgets || typeof budgets !== "object" || Array.isArray(budgets)) budgets = {};
+let recs = LS.get("masareef_recs", []); if (!Array.isArray(recs)) recs = [];
+let dirty = new Set(LS.get("masareef_dirty", []));
+let metaU = Number(LS.get("masareef_catsU", 0)) || 0;
+let metaDirty = false;
+let cfg = LS.get("masareef_sync", null);
+for (const t of txs) if (t && !t.updated) t.updated = t.created || 1;
+
+let tab = "home", view = ym(today()), sCat = "", sPer = "month", mgrType = "exp";
+let sh = { mode: "tx", kind: "exp", id: null, cat: "" };
 let pendingCatDel = null;
-let dirty = new Set();
-let catsUpdated = 0, catsDirty = false;
-let cfg = null;
-let syncTimer = null, syncing = false, again = false;
-let view = today().slice(0,7);
-let pendingDel = null;
+const listOf = ty => ty === "inc" ? ICATS : CATS;
+const catName = t => t.cat || (t.type === "inc" ? "فلوس دخلت" : "تانية");
+const live = () => txs.filter(t => t && !t.deleted && t.amount > 0 && typeof t.date === "string");
 
-function loadLocal(){
-  try { txs = JSON.parse(localStorage.getItem("masareef") || "[]"); } catch(e){ txs = []; }
-  try { const c = JSON.parse(localStorage.getItem("masareef_cats") || "null"); if (Array.isArray(c) && c.length) CATS = c.filter(x => typeof x === "string" && x.trim()); } catch(e){}
-  try { const c = JSON.parse(localStorage.getItem("masareef_icats") || "null"); if (Array.isArray(c) && c.length) ICATS = c.filter(x => typeof x === "string" && x.trim()); } catch(e){}
-  try { dirty = new Set(JSON.parse(localStorage.getItem("masareef_dirty") || "[]")); } catch(e){}
-  try { catsUpdated = Number(localStorage.getItem("masareef_catsU")) || 0; } catch(e){}
-  try { cfg = JSON.parse(localStorage.getItem("masareef_sync") || "null"); } catch(e){}
-  for (const t of txs) if (t && !t.updated) { t.updated = t.created || 1; }
-}
-function saveLocal(){
-  try { localStorage.setItem("masareef", JSON.stringify(txs)); localStorage.setItem("masareef_dirty", JSON.stringify([...dirty])); } catch(e){}
+function saveTx(){ LS.set("masareef", txs); LS.set("masareef_dirty", [...dirty]); scheduleSync(); }
+function saveMeta(){
+  metaU = Date.now(); metaDirty = true;
+  LS.set("masareef_cats", CATS); LS.set("masareef_icats", ICATS); LS.set("masareef_budgets", budgets); LS.set("masareef_recs", recs); LS.set("masareef_catsU", metaU);
   scheduleSync();
 }
-function saveCats(){
-  catsUpdated = Date.now();
-  try { localStorage.setItem("masareef_cats", JSON.stringify(CATS)); localStorage.setItem("masareef_icats", JSON.stringify(ICATS)); localStorage.setItem("masareef_catsU", String(catsUpdated)); } catch(e){}
-  catsDirty = true; scheduleSync();
-}
 function touch(t){ t.updated = Date.now(); dirty.add(t.id); }
-function addCat(name, ty){
-  name = String(name || "").trim().slice(0,30);
-  if (!name) return false;
-  const L = listOf(ty);
-  if (!L.includes(name)) { L.push(name); saveCats(); }
-  return name;
-}
-// categories travel to the sheet as one list; income ones carry an "inc:" prefix
-const packCats = () => [...CATS, ...ICATS.map(c => "inc:" + c)];
-function unpackCats(arr){
-  const e = [], i = [];
-  for (const x of arr) { if (typeof x !== "string" || !x.trim()) continue; if (x.startsWith("inc:")) { if (x.slice(4).trim()) i.push(x.slice(4)); } else e.push(x); }
-  if (e.length) CATS = e; if (i.length) ICATS = i;
+
+let toastT;
+function toast(msg, warn){
+  const el = $("toast"); el.textContent = msg; el.className = "toast show" + (warn ? " warn" : "");
+  clearTimeout(toastT); toastT = setTimeout(() => { el.className = "toast"; }, warn ? 4200 : 2200);
 }
 
+// ---------- recurring ----------
+function genRecurring(){
+  const t0 = today(), cur = ym(t0), dnow = +t0.slice(8,10);
+  const have = new Set(txs.map(t => t.id));
+  let made = 0;
+  for (const r of recs) {
+    if (!r || !r.id || !(r.amount > 0) || !r.start) continue;
+    const day = Math.min(28, Math.max(1, +r.day || 1));
+    for (let m = r.start, guard = 0; m <= cur && guard < 240; m = addM(m, 1), guard++) {
+      if (m === cur && dnow < day) break;
+      const id = "r" + r.id + "-" + m;
+      if (have.has(id)) continue;
+      const t = { id, type: r.type, amount: r.amount, cat: r.cat, note: r.note || "", date: `${m}-${String(day).padStart(2,"0")}`, created: Date.now(), rec: r.id };
+      touch(t); txs.push(t); have.add(id); made++;
+    }
+  }
+  if (made) saveTx();
+  return made;
+}
+
+// ---------- budgets ----------
+function spentIn(m){ const o = {}; for (const t of live()) if (t.type === "exp" && ym(t.date) === m) o[catName(t)] = (o[catName(t)] || 0) + t.amount; return o; }
+function budState(spent, lim){ if (!(lim > 0)) return ""; const p = spent / lim; return p >= 1 ? "over" : p >= 0.8 ? "near" : ""; }
+
+// ---------- tabs ----------
+function go(t){
+  tab = t;
+  for (const v of document.querySelectorAll(".view")) v.hidden = v.id !== "v-" + t;
+  for (const b of document.querySelectorAll(".tabs button")) { if (b.dataset.tab === t) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); }
+  window.scrollTo(0, 0);
+  render();
+}
+document.querySelector(".tabs").addEventListener("click", e => { const b = e.target.closest("button"); if (b) go(b.dataset.tab); });
+document.addEventListener("click", e => { const g = e.target.closest("[data-go]"); if (g) { if (g.dataset.go === "month") view = ym(today()); go(g.dataset.go); } });
+
+// ---------- sheet (add / edit form) ----------
 function renderChips(){
-  const L = listOf(kind);
-  if (!L.includes(cat)) cat = "";
-  $("chips").innerHTML = L.map(c => `<button type="button" class="chip" data-c="${esc(c)}" aria-pressed="${c===cat}">${esc(c)}</button>`).join("")
+  const L = listOf(sh.kind);
+  $("chips").innerHTML = L.map(c => `<button type="button" class="chip" data-c="${esc(c)}" aria-pressed="${c === sh.cat}">${esc(c)}</button>`).join("")
     + `<button type="button" class="chip add" id="chipAdd">+ بند جديد</button>`;
 }
+function setKind(k){
+  sh.kind = k;
+  if (!listOf(k).includes(sh.cat)) sh.cat = "";
+  for (const b of $("kindSeg").children) b.setAttribute("aria-pressed", b.dataset.k === k);
+  $("catLbl").textContent = k === "exp" ? "صرفته في إيه؟" : "الفلوس دي جت منين؟";
+  $("note").placeholder = k === "exp" ? "مثلاً: عيش وخضار" : "مثلاً: مرتب نوفمبر";
+  $("newCatRow").hidden = true;
+  renderChips();
+}
+function openSheet(mode, kind, rec){
+  sh = { mode, kind, id: rec ? rec.id : null, cat: rec ? rec.cat || "" : "" };
+  const isRec = mode === "rec";
+  $("sTitle").textContent = isRec ? (rec ? "تعديل حاجة ثابتة" : "حاجة ثابتة كل شهر") : (rec ? "تعديل" : (kind === "exp" ? "مصروف جديد" : "فلوس دخلت"));
+  $("amt").value = rec ? rec.amount : "";
+  $("note").value = rec ? rec.note || "" : "";
+  $("date").value = rec && rec.date ? rec.date : today();
+  $("day").value = rec && rec.day ? rec.day : +today().slice(8,10) > 28 ? 28 : +today().slice(8,10);
+  $("dateWrap").hidden = isRec; $("dayWrap").hidden = !isRec;
+  $("repWrap").hidden = isRec || !!rec; $("rep").checked = false;
+  $("sDel").hidden = !rec; $("sDel").classList.remove("sure"); $("sDel").textContent = "مسح";
+  $("sBtns").className = "sbtns" + (rec ? " two" : "");
+  $("sSave").textContent = rec ? "حفظ التعديل" : "حفظ";
+  $("err").textContent = "";
+  setKind(kind);
+  $("scrim").hidden = false; $("sheet").hidden = false; document.body.style.overflow = "hidden";
+  if (!rec) setTimeout(() => $("amt").focus(), 60);
+}
+function closeSheet(){ $("sheet").hidden = true; $("scrim").hidden = true; document.body.style.overflow = ""; }
+$("addEx").onclick = () => openSheet("tx", "exp");
+$("addIn").onclick = () => openSheet("tx", "inc");
+$("recAdd").onclick = () => openSheet("rec", "exp");
+$("sClose").onclick = closeSheet; $("scrim").onclick = closeSheet;
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("sheet").hidden) closeSheet(); });
+$("kindSeg").addEventListener("click", e => { const b = e.target.closest("button"); if (b) { setKind(b.dataset.k); $("err").textContent = ""; } });
 $("chips").addEventListener("click", e => {
   const b = e.target.closest(".chip"); if (!b) return;
   if (b.id === "chipAdd") { $("newCatRow").hidden = false; $("newCat").value = ""; $("newCat").focus(); return; }
-  cat = b.dataset.c; $("err").textContent = "";
-  for (const x of $("chips").querySelectorAll(".chip[data-c]")) x.setAttribute("aria-pressed", x.dataset.c === cat);
+  sh.cat = b.dataset.c; $("err").textContent = "";
+  for (const x of $("chips").querySelectorAll(".chip[data-c]")) x.setAttribute("aria-pressed", x.dataset.c === sh.cat);
 });
-$("newCatAdd").onclick = () => {
-  const n = addCat($("newCat").value, kind); if (!n) return;
-  cat = n; $("err").textContent = ""; $("newCatRow").hidden = true; renderChips(); render();
-};
+function addCat(name, ty){
+  name = String(name || "").trim().slice(0,30); if (!name) return "";
+  const L = listOf(ty); if (!L.includes(name)) { L.push(name); saveMeta(); }
+  return name;
+}
+$("newCatAdd").onclick = () => { const n = addCat($("newCat").value, sh.kind); if (!n) return; sh.cat = n; $("newCatRow").hidden = true; renderChips(); render(); };
 $("newCat").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); $("newCatAdd").click(); } });
 
+$("sheet").addEventListener("submit", e => {
+  e.preventDefault();
+  const amount = parseAmt($("amt").value);
+  if (!(amount > 0)) { $("err").textContent = "اكتبي المبلغ الأول"; return; }
+  if (!sh.cat) { $("err").textContent = "اختاري البند الأول"; return; }
+  const note = $("note").value.trim().slice(0,80);
+  if (sh.mode === "rec") {
+    const day = Math.min(28, Math.max(1, parseInt($("day").value, 10) || 1));
+    const cur = ym(today()), dnow = +today().slice(8,10);
+    if (sh.id) {
+      const r = recs.find(x => x.id === sh.id);
+      if (r) Object.assign(r, { type: sh.kind, amount, cat: sh.cat, note, day });
+    } else {
+      recs.push({ id: newId("p"), type: sh.kind, amount, cat: sh.cat, note, day, start: cur });
+    }
+    saveMeta(); const made = genRecurring(); closeSheet(); render();
+    toast(made ? "اتحفظت، واتسجّلت للشهر ده" : "اتحفظت، وهتتسجّل لوحدها يوم " + day);
+    return;
+  }
+  const date = $("date").value || today();
+  if (sh.id) {
+    const t = txs.find(x => x.id === sh.id);
+    if (t) { Object.assign(t, { type: sh.kind, amount, cat: sh.cat, note, date }); touch(t); }
+  } else {
+    const t = { id: newId("t"), type: sh.kind, amount, cat: sh.cat, note, date, created: Date.now() };
+    touch(t); txs.push(t);
+    if ($("rep").checked) {
+      const day = Math.min(28, +date.slice(8,10));
+      recs.push({ id: newId("p"), type: sh.kind, amount, cat: sh.cat, note, day, start: addM(ym(date), 1) });
+      saveMeta();
+    }
+  }
+  saveTx(); closeSheet();
+  if (tab === "month") view = ym(date);
+  render();
+  // budget feedback
+  if (sh.kind === "exp" && budgets[sh.cat] > 0 && ym(date) === ym(today())) {
+    const sp = spentIn(ym(today()))[sh.cat] || 0, lim = budgets[sh.cat], st = budState(sp, lim);
+    if (st === "over") return toast(`عدّيتي ميزانية «${sh.cat}» بـ ${fmt(sp - lim)}`, true);
+    if (st === "near") return toast(`وصلتي ${Math.round(sp/lim*100)}% من ميزانية «${sh.cat}» — فاضل ${fmt(lim - sp)}`, true);
+  }
+  toast(sh.id ? "اتعدّل" : "اتحفظ");
+});
+$("sDel").onclick = () => {
+  const b = $("sDel");
+  if (!b.classList.contains("sure")) { b.classList.add("sure"); b.textContent = "متأكدة؟"; setTimeout(() => { b.classList.remove("sure"); b.textContent = "مسح"; }, 3000); return; }
+  if (sh.mode === "rec") { recs = recs.filter(r => r.id !== sh.id); saveMeta(); toast("اتمسحت، ومش هتتسجّل تاني (القديم فاضل زي ما هو)"); }
+  else { const t = txs.find(x => x.id === sh.id); if (t) { t.deleted = true; touch(t); saveTx(); } toast("اتمسح"); }
+  closeSheet(); render();
+};
+function openTx(id){ const t = txs.find(x => x.id === id); if (t) openSheet("tx", t.type, t); }
+document.addEventListener("click", e => { const it = e.target.closest(".it[data-id]"); if (it) openTx(it.dataset.id); });
+
+// ---------- render ----------
+function itemHTML(t, showDay){
+  const [, mm, dd] = t.date.split("-").map(Number);
+  return `<button type="button" class="it" data-id="${esc(t.id)}"><div><div class="t">${esc(catName(t))}${t.rec || String(t.id).startsWith("r") ? '<span class="tag">ثابت</span>' : ""}</div><div class="n">${showDay ? dd + " " + MONTHS[mm-1] + (t.note ? " · " : "") : ""}${esc(t.note)}</div></div>
+    <div class="a num ${t.type === "inc" ? "in" : ""}">${t.type === "inc" ? "+" : "−"}${esc(fmt(t.amount))}</div></button>`;
+}
+function render(){
+  const L = live(), cur = ym(today());
+  let bal = 0; for (const t of L) bal += t.type === "inc" ? t.amount : -t.amount;
+  const sum = (m, ty) => L.filter(t => ym(t.date) === m && t.type === ty).reduce((a,t) => a + t.amount, 0);
+
+  // HOME
+  $("bal").textContent = fmt(bal); $("bal").classList.toggle("neg", bal < 0);
+  $("hSpent").textContent = fmt(sum(cur, "exp")); $("hIn").textContent = fmt(sum(cur, "inc"));
+  const spNow = spentIn(cur);
+  const budCats = Object.keys(budgets).filter(c => budgets[c] > 0);
+  const budTot = budCats.reduce((a,c) => a + budgets[c], 0), budSp = budCats.reduce((a,c) => a + (spNow[c] || 0), 0);
+  $("budLine").hidden = !budTot;
+  if (budTot) $("budLine").innerHTML = `ميزانية الشهر: صرفتي ${esc(fmt(budSp))} من ${esc(fmt(budTot))}<div class="track"><div class="fill" style="width:${Math.min(100, budSp/budTot*100).toFixed(1)}%"></div></div>`;
+  $("alerts").innerHTML = budCats.map(c => ({ c, sp: spNow[c] || 0, lim: budgets[c] })).filter(x => budState(x.sp, x.lim))
+    .sort((a,b) => b.sp/b.lim - a.sp/a.lim)
+    .map(x => budState(x.sp, x.lim) === "over"
+      ? `<div class="alert over"><span>«${esc(x.c)}»: عدّيتي الميزانية بـ <b>${esc(fmt(x.sp - x.lim))}</b></span></div>`
+      : `<div class="alert near"><span>«${esc(x.c)}»: صرفتي ${Math.round(x.sp/x.lim*100)}% — فاضل <b>${esc(fmt(x.lim - x.sp))}</b></span></div>`).join("");
+  const recent = L.slice().sort((a,b) => b.date.localeCompare(a.date) || (b.created||0) - (a.created||0)).slice(0, 6);
+  $("recent").innerHTML = recent.length ? recent.map(t => itemHTML(t, true)).join("") : `<div class="empty">لسه مفيش حاجة متسجّلة. ابدئي بـ «فلوس دخلت» وسجّلي الفلوس اللي معاكي.</div>`;
+
+  // MONTH
+  $("mname").textContent = mLabel(view);
+  const mExp = sum(view, "exp"), mInc = sum(view, "inc"), pExp = sum(addM(view, -1), "exp");
+  $("mExp").textContent = fmt(mExp); $("mInc").textContent = fmt(mInc);
+  const cmp = $("mCmp"); cmp.className = "";
+  if (pExp > 0) { const d = (mExp - pExp) / pExp * 100; cmp.textContent = (d > 0 ? "+" : "") + Math.round(d) + "%"; cmp.className = d > 0 ? "up" : d < 0 ? "down" : ""; }
+  else cmp.textContent = "—";
+  $("mCmpL").firstChild.textContent = "عن " + MONTHS[+addM(view, -1).slice(5) - 1];
+  const sp = spentIn(view);
+  const names = [...new Set([...Object.keys(sp), ...budCats])];
+  names.sort((a,b) => (sp[b] || 0) - (sp[a] || 0));
+  const maxSp = Math.max(1, ...names.map(c => sp[c] || 0));
+  $("cats").innerHTML = names.length ? names.map(c => {
+    const v = sp[c] || 0, lim = budgets[c] > 0 ? budgets[c] : 0, st = budState(v, lim);
+    const w = lim ? Math.min(100, v / lim * 100) : v / maxSp * 100;
+    const sub = lim ? (st === "over" ? `<small class="over">عدّيتي الميزانية (${esc(fmt(lim))}) بـ ${esc(fmt(v - lim))}</small>` : `<small class="${st}">من ميزانية ${esc(fmt(lim))} — فاضل ${esc(fmt(lim - v))}</small>`) : "";
+    return `<div class="cat" data-c="${esc(c)}" role="button" tabindex="0"><div class="h"><span>${esc(c)}</span><span>${esc(fmt(v))}</span></div><div class="track"><div class="fill ${st}" style="width:${w.toFixed(1)}%"></div></div>${sub}</div>`;
+  }).join("") : `<div class="empty">مفيش مصاريف في ${esc(mLabel(view))}</div>`;
+  const month = L.filter(t => ym(t.date) === view).sort((a,b) => b.date.localeCompare(a.date) || (b.created||0) - (a.created||0));
+  let html = "", lastDay = "", dayTot = {};
+  for (const t of month) if (t.type === "exp") dayTot[t.date] = (dayTot[t.date] || 0) + t.amount;
+  for (const t of month) {
+    if (t.date !== lastDay) { lastDay = t.date; const [, mm, dd] = t.date.split("-").map(Number); html += `<div class="day"><span>${dd} ${MONTHS[mm-1]}</span><span class="num">${dayTot[t.date] ? "صرفتي " + esc(fmt(dayTot[t.date])) : ""}</span></div>`; }
+    html += itemHTML(t, false);
+  }
+  $("list").innerHTML = html || `<div class="empty">مفيش حاجة متسجّلة في ${esc(mLabel(view))}</div>`;
+
+  // REPORTS — trend
+  const ms = []; for (let i = 5; i >= 0; i--) ms.push(addM(cur, -i));
+  const tv = ms.map(m => ({ m, e: sum(m, "exp"), i: sum(m, "inc") }));
+  const mx = Math.max(1, ...tv.map(x => x.e));
+  $("trend").innerHTML = tv.map(x => `<div class="tcol${x.m === cur ? " cur" : ""}" data-m="${x.m}" title="${esc(mLabel(x.m))}"><div class="tbars">
+      <div class="tb" style="height:${(x.e/mx*100).toFixed(1)}%"><span class="tv">${x.e ? fmtK(x.e) : "0"}</span></div></div><div class="tl">${MONTHS[+x.m.slice(5)-1].slice(0,5)}</div></div>`).join("");
+  const past = tv.slice(0, 5).filter(x => x.e > 0);
+  const avg = past.length ? past.reduce((a,x) => a + x.e, 0) / past.length : 0;
+  $("trendNote").textContent = avg ? `متوسط مصاريفك في الشهور اللي فاتت ${fmt(avg)}، والشهر ده لحد دلوقتي ${fmt(tv[5].e)}.` : "لما تسجّلي أكتر من شهر، هتظهر هنا المقارنة بين الشهور.";
+
+  // REPORTS — summary by category
+  const usedE = [...new Set(L.filter(t => t.type === "exp").map(catName))];
+  const usedI = [...new Set(L.filter(t => t.type === "inc").map(catName))];
+  const optsE = [...CATS, ...usedE.filter(c => !CATS.includes(c))].map(c => "exp|" + c);
+  const optsI = [...ICATS, ...usedI.filter(c => !ICATS.includes(c))].map(c => "inc|" + c);
+  if (![...optsE, ...optsI].includes(sCat)) sCat = names.length && sp[names[0]] ? "exp|" + names[0] : (optsE[0] || "");
+  const opt = v => `<option value="${esc(v)}"${v === sCat ? " selected" : ""}>${esc(v.slice(4))}</option>`;
+  $("sCat").innerHTML = `<optgroup label="مصاريف">${optsE.map(opt).join("")}</optgroup><optgroup label="دخل">${optsI.map(opt).join("")}</optgroup>`;
+  $("perMonth").textContent = MONTHS[+view.slice(5)-1]; $("perYear").textContent = "سنة " + view.slice(0,4);
+  for (const b of $("sPer").children) b.setAttribute("aria-pressed", b.dataset.p === sPer);
+  const sType = sCat.slice(0,3), sName = sCat.slice(4);
+  const inPer = t => sPer === "all" || (sPer === "year" ? t.date.slice(0,4) === view.slice(0,4) : ym(t.date) === view);
+  const sel = L.filter(t => t.type === sType && catName(t) === sName && inPer(t)).sort((a,b) => b.date.localeCompare(a.date));
+  const sTot = sel.reduce((a,t) => a + t.amount, 0);
+  $("sTot").textContent = fmt(sTot); $("sCnt").textContent = sel.length; $("sAvg").textContent = fmt(sel.length ? sTot / sel.length : 0);
+  $("sList").innerHTML = sel.length ? sel.map(t => itemHTML(t, true)).join("") : `<div class="empty">مفيش حاجة في «${esc(sName)}» في الفترة دي</div>`;
+
+  // SETTINGS
+  $("budList").innerHTML = CATS.map(c => `<div class="brow"><span>${esc(c)}</span><input inputmode="decimal" data-b="${esc(c)}" value="${budgets[c] > 0 ? budgets[c] : ""}" placeholder="من غير حد" aria-label="ميزانية ${esc(c)}"></div>`).join("");
+  $("recList").innerHTML = recs.length ? recs.map(r => `<button type="button" class="it" data-rec="${esc(r.id)}"><div><div class="t">${esc(r.cat)}</div><div class="n">كل شهر يوم ${+r.day || 1}${r.note ? " · " + esc(r.note) : ""}</div></div><div class="a num ${r.type === "inc" ? "in" : ""}">${r.type === "inc" ? "+" : "−"}${esc(fmt(r.amount))}</div></button>`).join("")
+    : `<div class="empty" style="padding:12px 0">مفيش حاجات ثابتة لسه</div>`;
+  renderCatMgr();
+}
+
+// month nav + interactions
+$("prev").onclick = () => { view = addM(view, -1); render(); };
+$("next").onclick = () => { view = addM(view, 1); render(); };
+$("cats").addEventListener("click", e => { const r = e.target.closest(".cat"); if (!r) return; sCat = "exp|" + r.dataset.c; sPer = "month"; go("reports"); $("sumH").scrollIntoView({ block: "start" }); });
+$("trend").addEventListener("click", e => { const c = e.target.closest(".tcol"); if (!c) return; view = c.dataset.m; go("month"); });
+$("sCat").onchange = () => { sCat = $("sCat").value; render(); };
+$("sPer").addEventListener("click", e => { const b = e.target.closest("button"); if (b) { sPer = b.dataset.p; render(); } });
+$("recList").addEventListener("click", e => { const b = e.target.closest("[data-rec]"); if (!b) return; const r = recs.find(x => x.id === b.dataset.rec); if (r) openSheet("rec", r.type, r); });
+$("budSave").onclick = () => {
+  const nb = {};
+  for (const i of $("budList").querySelectorAll("input[data-b]")) { const v = parseAmt(i.value); if (v > 0) nb[i.dataset.b] = Math.round(v); }
+  budgets = nb; saveMeta(); render(); toast("الميزانيات اتحفظت");
+};
+
+// categories manager
 function renderCatMgr(){
   const L = listOf(mgrType);
   for (const b of $("mgrSeg").children) b.setAttribute("aria-pressed", b.dataset.t === mgrType);
   $("catList").innerHTML = L.map((c,i) => `<div class="crow"><input data-i="${i}" value="${esc(c)}" maxlength="30" aria-label="اسم البند">
     <button type="button" data-save="${i}">حفظ</button>
-    <button type="button" data-del="${i}" class="${pendingCatDel === i ? "sure" : ""}">${pendingCatDel === i ? "امسح؟" : "✕"}</button></div>`).join("")
+    <button type="button" data-del="${i}" class="${pendingCatDel === i ? "sure" : ""}" aria-label="مسح">${pendingCatDel === i ? "امسح؟" : "✕"}</button></div>`).join("")
     || `<div class="empty">مفيش بنود. ضيفي بند تحت.</div>`;
 }
+$("mgrSeg").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; mgrType = b.dataset.t; pendingCatDel = null; renderCatMgr(); });
 $("catList").addEventListener("click", e => {
   const sv = e.target.closest("[data-save]"), dl = e.target.closest("[data-del]");
+  const L = listOf(mgrType);
   if (sv) {
-    const L = listOf(mgrType), i = +sv.dataset.save, old = L[i];
+    const i = +sv.dataset.save, old = L[i];
     const nn = $("catList").querySelector(`input[data-i="${i}"]`).value.trim().slice(0,30);
     if (!nn || nn === old) return;
-    if (L.includes(nn)) { L.splice(i,1); } else { L[i] = nn; }
+    if (L.includes(nn)) L.splice(i,1); else L[i] = nn;
     for (const t of txs) if (t.type === mgrType && t.cat === old) { t.cat = nn; touch(t); }
-    if (kind === mgrType && cat === old) cat = nn; if (sCat === mgrType + "|" + old) sCat = mgrType + "|" + nn;
-    saveCats(); saveLocal(); renderChips(); renderCatMgr(); render(); setStatus("اسم البند اتغيّر");
+    for (const r of recs) if (r.type === mgrType && r.cat === old) r.cat = nn;
+    if (mgrType === "exp" && budgets[old]) { budgets[nn] = budgets[old]; delete budgets[old]; }
+    if (sCat === mgrType + "|" + old) sCat = mgrType + "|" + nn;
+    saveMeta(); saveTx(); render(); toast("اسم البند اتغيّر");
   }
   if (dl) {
     const i = +dl.dataset.del;
-    if (pendingCatDel === i) { pendingCatDel = null; listOf(mgrType).splice(i,1); saveCats(); renderChips(); renderCatMgr(); render(); return; }
+    if (pendingCatDel === i) { pendingCatDel = null; if (mgrType === "exp") delete budgets[L[i]]; L.splice(i,1); saveMeta(); render(); return; }
     pendingCatDel = i; renderCatMgr();
     setTimeout(() => { if (pendingCatDel === i) { pendingCatDel = null; renderCatMgr(); } }, 3000);
   }
 });
-$("mgrSeg").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; mgrType = b.dataset.t; pendingCatDel = null; renderCatMgr(); });
-$("mgrAdd").onclick = () => { if (addCat($("mgrNew").value, mgrType)) { $("mgrNew").value = ""; renderChips(); renderCatMgr(); render(); } };
+$("mgrAdd").onclick = () => { if (addCat($("mgrNew").value, mgrType)) { $("mgrNew").value = ""; render(); } };
 $("mgrNew").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); $("mgrAdd").click(); } });
 
-$("sCat").onchange = () => { sCat = $("sCat").value; render(); };
-$("sPer").addEventListener("click", e => {
-  const b = e.target.closest("button"); if (!b) return;
-  sPer = b.dataset.p; render();
-});
-$("cats").addEventListener("click", e => {
-  const r = e.target.closest(".cat"); if (!r) return;
-  sCat = "exp|" + r.dataset.c; sPer = "month"; render();
-  $("sumH").scrollIntoView({behavior: "smooth", block: "start"});
-});
-
-function openForm(k){
-  kind = k;
-  $("formTitle").textContent = k === "exp" ? "مصروف جديد" : "فلوس دخلت (مرتب، فلوس معاكي…)";
-  cat = "";
-  $("catLbl").textContent = k === "exp" ? "صرفته في إيه؟ (اختاري بند)" : "الفلوس دي جت منين؟ (اختاري بند)";
-  $("note").placeholder = k === "exp" ? "مثلاً: عيش وخضار" : "مثلاً: المرتب";
-  $("date").value = today(); $("amt").value = ""; $("note").value = ""; $("err").textContent = "";
-  $("newCatRow").hidden = true; renderChips();
-  $("form").hidden = false; $("amt").focus();
-}
-$("openEx").onclick = () => openForm("exp");
-$("openIn").onclick = () => openForm("inc");
-$("cancel").onclick = () => { $("form").hidden = true; };
-
-$("form").addEventListener("submit", async e => {
-  e.preventDefault();
-  const raw = $("amt").value.replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/[,٬]/g, "").replace("٫", ".");
-  const amount = parseFloat(raw);
-  if (!(amount > 0)) { $("err").textContent = "اكتبي المبلغ الأول"; return; }
-  if (!cat || !listOf(kind).includes(cat)) { $("err").textContent = "اختاري البند الأول"; return; }
-  const t = { id: "t" + Date.now().toString(36) + Math.random().toString(36).slice(2,6), type: kind, amount,
-              cat, note: $("note").value.trim().slice(0,80), date: $("date").value || today(), created: Date.now() };
-  $("form").hidden = true;
-  view = t.date.slice(0,7);
-  touch(t); txs.push(t); saveLocal(); render();
-});
-
-async function remove(id){
-  const t = txs.find(x => x.id === id); if (!t) return;
-  t.deleted = true; touch(t); saveLocal(); render();
-}
-
-$("list").addEventListener("click", e => {
-  const b = e.target.closest(".del"); if (!b) return;
-  if (pendingDel === b.dataset.id) { pendingDel = null; remove(b.dataset.id); return; }
-  pendingDel = b.dataset.id; render();
-  setTimeout(() => { if (pendingDel === b.dataset.id) { pendingDel = null; render(); } }, 3000);
-});
-
-function shift(n){ let [y,m] = view.split("-").map(Number); m += n; if (m < 1){m = 12; y--;} if (m > 12){m = 1; y++;} view = `${y}-${String(m).padStart(2,"0")}`; render(); }
-$("prev").onclick = () => shift(-1);
-$("next").onclick = () => shift(1);
-
-function render(){
-  const valid = txs.filter(t => t && !t.deleted && t.amount > 0 && typeof t.date === "string");
-  let bal = 0; for (const t of valid) bal += t.type === "inc" ? t.amount : -t.amount;
-  $("bal").textContent = fmt(bal); $("bal").classList.toggle("neg", bal < 0);
-  const cur = today().slice(0,7);
-  const sum = (m, ty) => valid.filter(t => t.date.slice(0,7) === m && t.type === ty).reduce((a,t) => a + t.amount, 0);
-  $("mSpent").textContent = fmt(sum(cur,"exp")); $("mIn").textContent = fmt(sum(cur,"inc"));
-
-  const [y,m] = view.split("-").map(Number);
-  $("mname").textContent = `${MONTHS[m-1]} ${y}`;
-  const month = valid.filter(t => t.date.slice(0,7) === view);
-  const exps = month.filter(t => t.type === "exp");
-  const tot = exps.reduce((a,t) => a + t.amount, 0);
-  $("mTot").textContent = fmt(tot);
-  const byCat = {}; for (const t of exps) byCat[t.cat || "تانية"] = (byCat[t.cat || "تانية"] || 0) + t.amount;
-  const rows = Object.entries(byCat).sort((a,b) => b[1] - a[1]);
-  $("cats").innerHTML = rows.length ? rows.map(([c,v]) =>
-    `<div class="cat" data-c="${esc(c)}" role="button" tabindex="0"><span>${esc(c)}</span><div class="track"><div class="fill" style="width:${(v/tot*100).toFixed(1)}%"></div></div><span class="num">${esc(fmt(v))}</span></div>`).join("")
-    : `<div class="empty">مفيش مصاريف متسجّلة في الشهر ده</div>`;
-
-  // ---- summary by category
-  const catName = t => t.cat || (t.type === "inc" ? "فلوس دخلت" : "تانية");
-  const usedE = [...new Set(valid.filter(t => t.type === "exp").map(catName))];
-  const usedI = [...new Set(valid.filter(t => t.type === "inc").map(catName))];
-  const optsE = [...CATS, ...usedE.filter(c => !CATS.includes(c))].map(c => "exp|" + c);
-  const optsI = [...ICATS, ...usedI.filter(c => !ICATS.includes(c))].map(c => "inc|" + c);
-  if (![...optsE, ...optsI].includes(sCat)) sCat = rows.length ? "exp|" + rows[0][0] : (optsE[0] || optsI[0] || "");
-  const opt = v => `<option value="${esc(v)}"${v === sCat ? " selected" : ""}>${esc(v.slice(4))}</option>`;
-  $("sCat").innerHTML = `<optgroup label="مصاريف">${optsE.map(opt).join("")}</optgroup><optgroup label="فلوس دخلت">${optsI.map(opt).join("")}</optgroup>`;
-  const sType = sCat.slice(0,3), sName = sCat.slice(4);
-  $("perMonth").textContent = MONTHS[m-1];
-  $("perYear").textContent = "سنة " + y;
-  for (const b of $("sPer").children) b.setAttribute("aria-pressed", b.dataset.p === sPer);
-  const inPer = t => sPer === "all" ? true : sPer === "year" ? t.date.slice(0,4) === String(y) : t.date.slice(0,7) === view;
-  const sel = valid.filter(t => t.type === sType && catName(t) === sName && inPer(t))
-                   .sort((a,b) => b.date.localeCompare(a.date) || b.created - a.created);
-  const sTot = sel.reduce((a,t) => a + t.amount, 0);
-  $("sTot").textContent = fmt(sTot); $("sCnt").textContent = sel.length; $("sAvg").textContent = fmt(sel.length ? sTot / sel.length : 0);
-  $("sList").innerHTML = sel.length ? sel.map(t => { const [yy,mm,dd] = t.date.split("-").map(Number);
-      return `<div class="it" style="grid-template-columns:1fr auto"><div><div class="t">${dd} ${MONTHS[mm-1]}${sPer === "month" ? "" : " " + yy}</div>${t.note ? `<div class="n">${esc(t.note)}</div>` : ""}</div><div class="a num">${esc(fmt(t.amount))}</div></div>`; }).join("")
-    : `<div class="empty">مفيش حاجة متسجّلة في «${esc(sName)}» في الفترة دي</div>`;
-
-  month.sort((a,b) => b.date.localeCompare(a.date) || b.created - a.created);
-  let html = "", lastDay = "";
-  for (const t of month) {
-    if (t.date !== lastDay) { lastDay = t.date; const [yy,mm,dd] = t.date.split("-").map(Number); html += `<div class="day">${dd} ${MONTHS[mm-1]}</div>`; }
-    const title = t.cat || (t.type === "inc" ? "فلوس دخلت" : "تانية");
-    const sure = pendingDel === t.id;
-    html += `<div class="it"><div><div class="t">${esc(title)}</div>${t.note ? `<div class="n">${esc(t.note)}</div>` : ""}</div>
-      <div class="a num ${t.type === "inc" ? "in" : ""}">${t.type === "inc" ? "+" : "−"}${esc(fmt(t.amount))}</div>
-      <button class="del ${sure ? "sure" : ""}" data-id="${esc(t.id)}" aria-label="مسح">${sure ? "امسح؟" : "✕"}</button></div>`;
-  }
-  $("list").innerHTML = html || `<div class="empty">لسه مفيش حاجة متسجّلة في الشهر ده.</div>`;
-}
-function setStatus(s){ $("status").textContent = s; }
-
-loadLocal(); renderChips(); renderCatMgr(); render();
-try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch(e){}
-
+// ---------- backup ----------
 $("exp").onclick = async () => {
   const name = "masareef-" + today() + ".json";
-  const blob = new Blob([JSON.stringify({app:"masareef",v:3,txs:txs.filter(t => !t.deleted),cats:CATS,icats:ICATS}, null, 1)], {type:"application/json"});
+  const blob = new Blob([JSON.stringify({ app: "masareef", v: 4, txs: txs.filter(t => !t.deleted), cats: CATS, icats: ICATS, budgets, recs }, null, 1)], { type: "application/json" });
   try {
-    const f = new File([blob], name, {type:"application/json"});
-    if (navigator.canShare && navigator.canShare({files:[f]})) { await navigator.share({files:[f], title:"مصاريفي"}); setStatus("النسخة اتحفظت"); return; }
+    const f = new File([blob], name, { type: "application/json" });
+    if (navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ files: [f], title: "مصاريفي" }); toast("النسخة اتحفظت"); return; }
   } catch(e) { if (e && e.name === "AbortError") return; }
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove();
-  setStatus("النسخة اتحفظت");
+  toast("النسخة اتحفظت");
 };
 $("imp").onchange = async e => {
   const file = e.target.files[0]; e.target.value = ""; if (!file) return;
@@ -436,21 +651,45 @@ $("imp").onchange = async e => {
     if (!Array.isArray(list)) throw 0;
     const ids = new Set(txs.map(t => t.id)); let added = 0;
     for (const t of list) if (t && t.id && t.amount > 0 && typeof t.date === "string" && !ids.has(t.id)) { touch(t); txs.push(t); added++; }
-    if (data && Array.isArray(data.cats)) for (const c of data.cats) if (typeof c === "string" && c.trim() && !CATS.includes(c.trim())) CATS.push(c.trim().slice(0,30));
-    if (data && Array.isArray(data.icats)) for (const c of data.icats) if (typeof c === "string" && c.trim() && !ICATS.includes(c.trim())) ICATS.push(c.trim().slice(0,30));
-    saveCats(); saveLocal(); renderChips(); renderCatMgr(); render(); setStatus(`اترجّع ${added} عملية`);
-  } catch(err) { setStatus("الملف ده مش نسخة من مصاريفي"); }
+    const addAll = (src, L) => { if (Array.isArray(src)) for (const c of src) if (typeof c === "string" && c.trim() && !L.includes(c.trim())) L.push(c.trim().slice(0,30)); };
+    addAll(data.cats, CATS); addAll(data.icats, ICATS);
+    if (data.budgets && typeof data.budgets === "object") for (const k in data.budgets) if (!(budgets[k] > 0) && data.budgets[k] > 0) budgets[k] = +data.budgets[k];
+    if (Array.isArray(data.recs)) for (const r of data.recs) if (r && r.id && !recs.some(x => x.id === r.id)) recs.push(r);
+    saveMeta(); saveTx(); render(); toast(`اترجّع ${added} عملية`);
+  } catch(err) { toast("الملف ده مش نسخة من مصاريفي", true); }
 };
 
 // ---------- Google Sheet sync ----------
+// The sheet stores entries as rows, plus one list of strings for settings:
+// plain = expense category, "inc:" = income category, "bud:" = budget, "rec:" = fixed monthly item.
+const packMeta = () => [...CATS, ...ICATS.map(c => "inc:" + c),
+  ...Object.entries(budgets).filter(([,v]) => v > 0).map(([c,v]) => "bud:" + JSON.stringify([c, v])),
+  ...recs.map(r => "rec:" + JSON.stringify(r))];
+function unpackMeta(arr){
+  const e = [], i = [], b = {}, r = [];
+  for (const x of arr) {
+    if (typeof x !== "string" || !x.trim()) continue;
+    try {
+      if (x.startsWith("inc:")) { if (x.slice(4).trim()) i.push(x.slice(4)); }
+      else if (x.startsWith("bud:")) { const [c, v] = JSON.parse(x.slice(4)); if (c && v > 0) b[c] = +v; }
+      else if (x.startsWith("rec:")) { const o = JSON.parse(x.slice(4)); if (o && o.id) r.push(o); }
+      else e.push(x);
+    } catch(err) {}
+  }
+  if (e.length) CATS = e; if (i.length) ICATS = i;
+  budgets = b; recs = r;
+}
+let syncTimer = null, syncing = false, again = false;
 function scheduleSync(){ if (!cfg) return; clearTimeout(syncTimer); syncTimer = setTimeout(syncNow, 800); }
-function hhmm(){ const d = new Date(); return d.getHours() + ":" + String(d.getMinutes()).padStart(2,"0"); }
-function showSync(msg){
+const hhmm = () => { const d = new Date(); return d.getHours() + ":" + String(d.getMinutes()).padStart(2,"0"); };
+function showSync(msg, state){
   $("syncOn").hidden = !cfg; $("syncSetup").hidden = !!cfg;
   if (msg) $("syncState").textContent = msg;
+  const dot = $("dot"); dot.hidden = !cfg; dot.className = "dot" + (cfg ? (state === "err" ? " err" : state === "ok" ? " on" : "") : "");
+  $("dotTxt").textContent = cfg ? (state === "ok" ? "متزامن" : state === "err" ? "مش متزامن" : "بيزامن…") : "";
 }
 async function call(c, body){
-  const r = await fetch(c.url, { method: "POST", headers: {"Content-Type": "text/plain;charset=utf-8"}, body: JSON.stringify(Object.assign({key: c.key}, body)), redirect: "follow" });
+  const r = await fetch(c.url, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(Object.assign({ key: c.key }, body)), redirect: "follow" });
   if (!r.ok) throw new Error("http");
   return r.json();
 }
@@ -458,38 +697,32 @@ function merge(res){
   const byId = new Map(txs.map(t => [t.id, t]));
   for (const rt of res.txs || []) {
     if (!rt || !rt.id) continue;
-    const lt = byId.get(rt.id);
-    if (!lt || (Number(rt.updated) || 0) >= (Number(lt.updated) || 0)) {
-      if (lt && dirty.has(lt.id) && (Number(lt.updated) || 0) > (Number(rt.updated) || 0)) continue;
-      byId.set(rt.id, rt);
-      if (lt && (Number(rt.updated) || 0) >= (Number(lt.updated) || 0)) dirty.delete(rt.id);
-    }
+    const lt = byId.get(rt.id), ru = Number(rt.updated) || 0, lu = lt ? Number(lt.updated) || 0 : -1;
+    if (!lt || ru >= lu) { if (lt && dirty.has(lt.id) && lu > ru) continue; byId.set(rt.id, rt); if (lt && ru >= lu) dirty.delete(rt.id); }
   }
   txs = [...byId.values()];
-  if (Array.isArray(res.cats) && res.cats.length && (Number(res.catsUpdated) || 0) > catsUpdated) {
-    unpackCats(res.cats);
-    catsUpdated = Number(res.catsUpdated);
-    try { localStorage.setItem("masareef_cats", JSON.stringify(CATS)); localStorage.setItem("masareef_icats", JSON.stringify(ICATS)); localStorage.setItem("masareef_catsU", String(catsUpdated)); } catch(e){}
+  if (Array.isArray(res.cats) && res.cats.length && (Number(res.catsUpdated) || 0) > metaU) {
+    unpackMeta(res.cats); metaU = Number(res.catsUpdated);
+    LS.set("masareef_cats", CATS); LS.set("masareef_icats", ICATS); LS.set("masareef_budgets", budgets); LS.set("masareef_recs", recs); LS.set("masareef_catsU", metaU);
   }
-  try { localStorage.setItem("masareef", JSON.stringify(txs)); localStorage.setItem("masareef_dirty", JSON.stringify([...dirty])); } catch(e){}
-  renderChips(); renderCatMgr(); render();
+  LS.set("masareef", txs); LS.set("masareef_dirty", [...dirty]);
+  genRecurring(); render();
 }
 async function syncNow(){
   if (!cfg) return;
   if (syncing) { again = true; return; }
-  if (navigator.onLine === false) { showSync("مفيش نت دلوقتي. اللي بتسجّليه محفوظ هنا، وهيتبعت أول ما النت يرجع."); return; }
+  if (navigator.onLine === false) { showSync("مفيش نت دلوقتي. اللي بتسجّليه محفوظ هنا، وهيتبعت أول ما النت يرجع.", "err"); return; }
   syncing = true;
   const sent = txs.filter(t => dirty.has(t.id)).map(t => Object.assign({}, t));
   try {
-    const res = await call(cfg, { txs: sent, cats: catsDirty ? packCats() : null, catsUpdated: catsDirty ? catsUpdated : 0 });
-    if (res.error === "bad_key") { showSync("الكود السري مش مطابق للي في الـ Script. فكّي الربط واربطي تاني."); }
+    const res = await call(cfg, { txs: sent, cats: metaDirty ? packMeta() : null, catsUpdated: metaDirty ? metaU : 0 });
+    if (res.error === "bad_key") showSync("الكود السري مش مطابق للي في الـ Script. فكّي الربط واربطي تاني.", "err");
     else if (res.ok) {
-      for (const t of sent) { const cur = txs.find(x => x.id === t.id); if (cur && (cur.updated || 0) <= (t.updated || 0)) dirty.delete(t.id); }
-      catsDirty = false;
-      merge(res);
-      showSync("✓ متزامن مع الـ Google Sheet — آخر مرة " + hhmm());
+      for (const t of sent) { const c = txs.find(x => x.id === t.id); if (c && (c.updated || 0) <= (t.updated || 0)) dirty.delete(t.id); }
+      metaDirty = false; merge(res);
+      showSync("✓ متزامن مع الـ Google Sheet — آخر مرة " + hhmm(), "ok");
     }
-  } catch(e) { showSync("ما قدرتش أوصل للشيت دلوقتي. البيانات محفوظة هنا وهحاول تاني."); }
+  } catch(e) { showSync("ما قدرتش أوصل للشيت دلوقتي. البيانات محفوظة هنا وهحاول تاني.", "err"); }
   syncing = false;
   if (again) { again = false; scheduleSync(); }
 }
@@ -500,30 +733,34 @@ $("sConnect").onclick = async () => {
   if (!key) { $("sErr").textContent = "اكتبي الكود السري"; return; }
   $("sConnect").textContent = "بيربط…";
   try {
-    const res = await call({url, key}, {});
-    if (res.error === "bad_key") { $("sErr").textContent = "الكود السري مش مطابق للي في الـ Script"; }
+    const res = await call({ url, key }, {});
+    if (res.error === "bad_key") $("sErr").textContent = "الكود السري مش مطابق للي في الـ Script";
     else if (res.ok) {
-      cfg = {url, key};
-      try { localStorage.setItem("masareef_sync", JSON.stringify(cfg)); } catch(e){}
+      cfg = { url, key }; LS.set("masareef_sync", cfg);
       for (const t of txs) dirty.add(t.id);
-      if (!(res.catsUpdated > catsUpdated)) { catsDirty = true; if (!catsUpdated) catsUpdated = Date.now(); }
+      if (!((Number(res.catsUpdated) || 0) > metaU)) { metaDirty = true; if (!metaU) metaU = Date.now(); }
       showSync("بيزامن…"); await syncNow();
-    } else { $("sErr").textContent = "الرد مش مفهوم. اتأكدي إن اللينك بتاع الـ Web app وبيخلص بـ /exec"; }
+    } else $("sErr").textContent = "الرد مش مفهوم. اتأكدي إن اللينك بتاع الـ Web app وبيخلص بـ /exec";
   } catch(e) { $("sErr").textContent = "ما قدرتش أوصل للينك. اتأكدي إن الـ Deploy متعمل بـ Who has access: Anyone"; }
   $("sConnect").textContent = "اربط";
 };
 $("syncNow").onclick = () => { showSync("بيزامن…"); syncNow(); };
 $("syncOff").onclick = () => {
-  if ($("syncOff").dataset.sure !== "1") { $("syncOff").dataset.sure = "1"; $("syncOff").textContent = "متأكدة؟"; setTimeout(() => { $("syncOff").dataset.sure = ""; $("syncOff").textContent = "فك الربط"; }, 3000); return; }
+  const b = $("syncOff");
+  if (!b.classList.contains("sure")) { b.classList.add("sure"); b.textContent = "متأكدة؟"; setTimeout(() => { b.classList.remove("sure"); b.textContent = "فك الربط"; }, 3000); return; }
   cfg = null; try { localStorage.removeItem("masareef_sync"); } catch(e){}
-  $("syncOff").dataset.sure = ""; $("syncOff").textContent = "فك الربط"; showSync();
+  b.classList.remove("sure"); b.textContent = "فك الربط"; showSync();
 };
+
+// ---------- start ----------
+try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch(e){}
+genRecurring();
+render();
 showSync(cfg ? "بيزامن…" : "");
 window.addEventListener("online", scheduleSync);
-document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") scheduleSync(); });
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") { if (genRecurring()) render(); scheduleSync(); } });
 if (cfg) syncNow();
-
-if ("serviceWorker" in navigator) { window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch(() => {}); }); }
+if ("serviceWorker" in navigator) window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch(() => {}); });
 }
 </script>
 </body>
