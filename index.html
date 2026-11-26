@@ -66,6 +66,22 @@ h2{font-size:18px;margin:22px 0 8px}
 .it .a{font-weight:700}.it .a.in{color:#1f7a45}
 .del{min-height:40px;min-width:40px;background:transparent;color:var(--mut);font-size:18px;padding:0 8px}
 .del.sure{background:var(--red);color:#fff;font-size:13px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:12px}
+.seg button{min-height:44px;background:var(--bg);border:1px solid var(--line);color:var(--ink);font-size:14px;padding:0 6px}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.sum3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0 6px}
+.sum3 div{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:8px;font-size:13px;color:var(--mut);text-align:center}
+.sum3 b{display:block;color:var(--ink);font-size:18px;white-space:nowrap}
+.cat{cursor:pointer}
+.addrow{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:8px}
+.addrow[hidden]{display:none}
+.addrow button{background:var(--ink);color:var(--bg);font-weight:700}
+.chip.add{border-style:dashed;color:var(--mut)}
+details.panel summary{font-weight:700;cursor:pointer;min-height:32px;list-style-position:inside}
+.crow{display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center;margin-top:8px}
+.crow input{min-height:44px}
+.crow button{min-height:44px;min-width:44px;background:var(--bg);border:1px solid var(--line);color:var(--ink);font-size:14px;padding:0 10px}
+.crow button.sure{background:var(--red);color:#fff;border-color:var(--red)}
 .empty{color:var(--mut);text-align:center;padding:20px 0}
 .note{font-size:13px;color:var(--mut);text-align:center;margin-top:24px}
 @media (prefers-reduced-motion:no-preference){.fill{transition:width .4s ease}}
@@ -96,6 +112,10 @@ h2{font-size:18px;margin:22px 0 8px}
     <div id="catWrap">
       <label>صرفته في إيه؟</label>
       <div class="chips" id="chips"></div>
+      <div class="addrow" id="newCatRow" hidden>
+        <input id="newCat" maxlength="30" placeholder="اسم البند الجديد">
+        <button type="button" id="newCatAdd">إضافة</button>
+      </div>
     </div>
     <label for="note">ملاحظة (اختياري)</label>
     <input id="note" maxlength="80" placeholder="مثلاً: عيش وخضار">
@@ -116,8 +136,35 @@ h2{font-size:18px;margin:22px 0 8px}
   <div class="mtot">مصاريف الشهر: <b class="num" id="mTot">0 ج</b></div>
   <div id="cats"></div>
 
+  <h2 id="sumH">ملخص بالبند</h2>
+  <div class="panel">
+    <label for="sCat">اختاري البند</label>
+    <select id="sCat"></select>
+    <div class="seg" id="sPer">
+      <button type="button" data-p="month" aria-pressed="true" id="perMonth">الشهر ده</button>
+      <button type="button" data-p="year" aria-pressed="false" id="perYear">السنة دي</button>
+      <button type="button" data-p="all" aria-pressed="false">كل الوقت</button>
+    </div>
+    <div class="sum3">
+      <div>الإجمالي<b id="sTot">0 ج</b></div>
+      <div>عدد المرات<b id="sCnt">0</b></div>
+      <div>متوسط المرة<b id="sAvg">0 ج</b></div>
+    </div>
+    <div id="sList"></div>
+  </div>
+
   <h2>اللي اتسجّل في الشهر ده</h2>
   <div id="list"></div>
+
+  <details class="panel" id="catMgr">
+    <summary>البنود بتاعتي (إضافة / تعديل / مسح)</summary>
+    <div id="catList"></div>
+    <div class="addrow">
+      <input id="mgrNew" maxlength="30" placeholder="بند جديد">
+      <button type="button" id="mgrAdd">إضافة</button>
+    </div>
+    <div class="mtot" style="text-align:start;margin-top:10px">تغيير اسم بند بيغيّره في كل المصاريف القديمة كمان. مسح بند بيشيله من الاختيارات بس، والمصاريف القديمة بتفضل باسمه.</div>
+  </details>
 
   <h2>نسخة احتياطية</h2>
   <div class="mtot" style="text-align:start">بياناتك محفوظة على الموبايل ده بس. احفظ نسخة كل فترة في Files أو ابعتها لنفسك على واتساب، علشان لو غيّرت الموبايل.</div>
@@ -130,7 +177,8 @@ h2{font-size:18px;margin:22px 0 8px}
 
 <script>
 {
-const CATS = ["أكل وبقالة","مواصلات","بيت","فواتير","أولاد ومدارس","لبس","صحة","خروج","تانية"];
+const DEFAULT_CATS = ["أكل وبقالة","مواصلات","بيت","فواتير","أولاد ومدارس","لبس","صحة","خروج","تانية"];
+let CATS = DEFAULT_CATS.slice();
 const MONTHS = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -139,18 +187,80 @@ const today = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getT
 
 let txs = [];
 let kind = "exp";
-let cat = CATS[0];
+let cat = "";
+let sCat = "";
+let sPer = "month";
+let pendingCatDel = null;
 let view = today().slice(0,7);
 let pendingDel = null;
 
-function loadLocal(){ try { txs = JSON.parse(localStorage.getItem("masareef") || "[]"); } catch(e){ txs = []; } }
+function loadLocal(){
+  try { txs = JSON.parse(localStorage.getItem("masareef") || "[]"); } catch(e){ txs = []; }
+  try { const c = JSON.parse(localStorage.getItem("masareef_cats") || "null"); if (Array.isArray(c) && c.length) CATS = c.filter(x => typeof x === "string" && x.trim()); } catch(e){}
+  cat = CATS[0] || "تانية";
+}
 function saveLocal(){ try { localStorage.setItem("masareef", JSON.stringify(txs)); } catch(e){} }
+function saveCats(){ try { localStorage.setItem("masareef_cats", JSON.stringify(CATS)); } catch(e){} }
+function addCat(name){
+  name = String(name || "").trim().slice(0,30);
+  if (!name) return false;
+  if (!CATS.includes(name)) { CATS.push(name); saveCats(); }
+  return name;
+}
 
-$("chips").innerHTML = CATS.map(c => `<button type="button" class="chip" data-c="${esc(c)}" aria-pressed="${c===cat}">${esc(c)}</button>`).join("");
+function renderChips(){
+  if (!CATS.includes(cat)) cat = CATS[0] || "تانية";
+  $("chips").innerHTML = CATS.map(c => `<button type="button" class="chip" data-c="${esc(c)}" aria-pressed="${c===cat}">${esc(c)}</button>`).join("")
+    + `<button type="button" class="chip add" id="chipAdd">+ بند جديد</button>`;
+}
 $("chips").addEventListener("click", e => {
   const b = e.target.closest(".chip"); if (!b) return;
+  if (b.id === "chipAdd") { $("newCatRow").hidden = false; $("newCat").value = ""; $("newCat").focus(); return; }
   cat = b.dataset.c;
-  for (const x of $("chips").children) x.setAttribute("aria-pressed", x.dataset.c === cat);
+  for (const x of $("chips").querySelectorAll(".chip[data-c]")) x.setAttribute("aria-pressed", x.dataset.c === cat);
+});
+$("newCatAdd").onclick = () => {
+  const n = addCat($("newCat").value); if (!n) return;
+  cat = n; $("newCatRow").hidden = true; renderChips(); render();
+};
+$("newCat").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); $("newCatAdd").click(); } });
+
+function renderCatMgr(){
+  $("catList").innerHTML = CATS.map((c,i) => `<div class="crow"><input data-i="${i}" value="${esc(c)}" maxlength="30" aria-label="اسم البند">
+    <button type="button" data-save="${i}">حفظ</button>
+    <button type="button" data-del="${i}" class="${pendingCatDel === i ? "sure" : ""}">${pendingCatDel === i ? "امسح؟" : "✕"}</button></div>`).join("")
+    || `<div class="empty">مفيش بنود. ضيفي بند تحت.</div>`;
+}
+$("catList").addEventListener("click", e => {
+  const sv = e.target.closest("[data-save]"), dl = e.target.closest("[data-del]");
+  if (sv) {
+    const i = +sv.dataset.save, old = CATS[i];
+    const nn = $("catList").querySelector(`input[data-i="${i}"]`).value.trim().slice(0,30);
+    if (!nn || nn === old) return;
+    if (CATS.includes(nn)) { CATS.splice(i,1); } else { CATS[i] = nn; }
+    for (const t of txs) if (t.type === "exp" && t.cat === old) t.cat = nn;
+    if (cat === old) cat = nn; if (sCat === old) sCat = nn;
+    saveCats(); saveLocal(); renderChips(); renderCatMgr(); render(); setStatus("اسم البند اتغيّر");
+  }
+  if (dl) {
+    const i = +dl.dataset.del;
+    if (pendingCatDel === i) { pendingCatDel = null; CATS.splice(i,1); saveCats(); renderChips(); renderCatMgr(); render(); return; }
+    pendingCatDel = i; renderCatMgr();
+    setTimeout(() => { if (pendingCatDel === i) { pendingCatDel = null; renderCatMgr(); } }, 3000);
+  }
+});
+$("mgrAdd").onclick = () => { if (addCat($("mgrNew").value)) { $("mgrNew").value = ""; renderChips(); renderCatMgr(); render(); } };
+$("mgrNew").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); $("mgrAdd").click(); } });
+
+$("sCat").onchange = () => { sCat = $("sCat").value; render(); };
+$("sPer").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  sPer = b.dataset.p; render();
+});
+$("cats").addEventListener("click", e => {
+  const r = e.target.closest(".cat"); if (!r) return;
+  sCat = r.dataset.c; sPer = "month"; render();
+  $("sumH").scrollIntoView({behavior: "smooth", block: "start"});
 });
 
 function openForm(k){
@@ -159,6 +269,7 @@ function openForm(k){
   $("catWrap").hidden = k !== "exp";
   $("note").placeholder = k === "exp" ? "مثلاً: عيش وخضار" : "مثلاً: المرتب";
   $("date").value = today(); $("amt").value = ""; $("note").value = ""; $("err").textContent = "";
+  $("newCatRow").hidden = true; renderChips();
   $("form").hidden = false; $("amt").focus();
 }
 $("openEx").onclick = () => openForm("exp");
@@ -209,8 +320,25 @@ function render(){
   const byCat = {}; for (const t of exps) byCat[t.cat || "تانية"] = (byCat[t.cat || "تانية"] || 0) + t.amount;
   const rows = Object.entries(byCat).sort((a,b) => b[1] - a[1]);
   $("cats").innerHTML = rows.length ? rows.map(([c,v]) =>
-    `<div class="cat"><span>${esc(c)}</span><div class="track"><div class="fill" style="width:${(v/tot*100).toFixed(1)}%"></div></div><span class="num">${esc(fmt(v))}</span></div>`).join("")
+    `<div class="cat" data-c="${esc(c)}" role="button" tabindex="0"><span>${esc(c)}</span><div class="track"><div class="fill" style="width:${(v/tot*100).toFixed(1)}%"></div></div><span class="num">${esc(fmt(v))}</span></div>`).join("")
     : `<div class="empty">مفيش مصاريف متسجّلة في الشهر ده</div>`;
+
+  // ---- summary by category
+  const used = [...new Set(valid.filter(t => t.type === "exp").map(t => t.cat || "تانية"))];
+  const opts = [...CATS, ...used.filter(c => !CATS.includes(c))];
+  if (!opts.includes(sCat)) sCat = rows.length ? rows[0][0] : (opts[0] || "");
+  $("sCat").innerHTML = opts.map(c => `<option value="${esc(c)}"${c === sCat ? " selected" : ""}>${esc(c)}</option>`).join("");
+  $("perMonth").textContent = MONTHS[m-1];
+  $("perYear").textContent = "سنة " + y;
+  for (const b of $("sPer").children) b.setAttribute("aria-pressed", b.dataset.p === sPer);
+  const inPer = t => sPer === "all" ? true : sPer === "year" ? t.date.slice(0,4) === String(y) : t.date.slice(0,7) === view;
+  const sel = valid.filter(t => t.type === "exp" && (t.cat || "تانية") === sCat && inPer(t))
+                   .sort((a,b) => b.date.localeCompare(a.date) || b.created - a.created);
+  const sTot = sel.reduce((a,t) => a + t.amount, 0);
+  $("sTot").textContent = fmt(sTot); $("sCnt").textContent = sel.length; $("sAvg").textContent = fmt(sel.length ? sTot / sel.length : 0);
+  $("sList").innerHTML = sel.length ? sel.map(t => { const [yy,mm,dd] = t.date.split("-").map(Number);
+      return `<div class="it" style="grid-template-columns:1fr auto"><div><div class="t">${dd} ${MONTHS[mm-1]}${sPer === "month" ? "" : " " + yy}</div>${t.note ? `<div class="n">${esc(t.note)}</div>` : ""}</div><div class="a num">${esc(fmt(t.amount))}</div></div>`; }).join("")
+    : `<div class="empty">مفيش مصاريف في «${esc(sCat)}» في الفترة دي</div>`;
 
   month.sort((a,b) => b.date.localeCompare(a.date) || b.created - a.created);
   let html = "", lastDay = "";
@@ -226,12 +354,12 @@ function render(){
 }
 function setStatus(s){ $("status").textContent = s; }
 
-loadLocal(); render();
+loadLocal(); renderChips(); renderCatMgr(); render();
 try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch(e){}
 
 $("exp").onclick = async () => {
   const name = "masareef-" + today() + ".json";
-  const blob = new Blob([JSON.stringify({app:"masareef",v:1,txs}, null, 1)], {type:"application/json"});
+  const blob = new Blob([JSON.stringify({app:"masareef",v:2,txs,cats:CATS}, null, 1)], {type:"application/json"});
   try {
     const f = new File([blob], name, {type:"application/json"});
     if (navigator.canShare && navigator.canShare({files:[f]})) { await navigator.share({files:[f], title:"مصاريفي"}); setStatus("النسخة اتحفظت"); return; }
@@ -247,7 +375,8 @@ $("imp").onchange = async e => {
     if (!Array.isArray(list)) throw 0;
     const ids = new Set(txs.map(t => t.id)); let added = 0;
     for (const t of list) if (t && t.id && t.amount > 0 && typeof t.date === "string" && !ids.has(t.id)) { txs.push(t); added++; }
-    saveLocal(); render(); setStatus(`اترجّع ${added} عملية`);
+    if (data && Array.isArray(data.cats)) for (const c of data.cats) if (typeof c === "string" && c.trim() && !CATS.includes(c.trim())) CATS.push(c.trim().slice(0,30));
+    saveCats(); saveLocal(); renderChips(); renderCatMgr(); render(); setStatus(`اترجّع ${added} عملية`);
   } catch(err) { setStatus("الملف ده مش نسخة من مصاريفي"); }
 };
 
